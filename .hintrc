@@ -1,0 +1,13 @@
+{
+  "connector": {
+    "name": "local"
+  },
+  "formatters": [
+    "summary"
+  ],
+  "hints": {
+    "axe/forms": "error",
+    "axe/aria": "error",
+    "meta-viewport": "default"
+  }
+}

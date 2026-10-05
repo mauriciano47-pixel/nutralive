@@ -1,0 +1,94 @@
+@charset "UTF-8";
+
+:root {
+  --bg-primary: #0b132b;
+  --bg-secondary: #111e38;
+  --bg-card: #162447;
+  --bg-card-hover: #1c2d59;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-emerald: rgba(16, 185, 129, 0.3);
+  
+  --emerald-500: #10b981;
+  --emerald-400: #34d399;
+  --emerald-600: #059669;
+  --emerald-glow: rgba(16, 185, 129, 0.15);
+
+  --red-alert: #ef4444;
+  --red-bg: rgba(239, 68, 68, 0.12);
+  --yellow-caution: #f59e0b;
+  --yellow-bg: rgba(245, 158, 11, 0.12);
+  --green-safe: #10b981;
+  --green-bg: rgba(16, 185, 129, 0.12);
+
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-full: 9999px;
+  
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-emerald: rgba(5, 150, 105, 0.3);
+  
+  --emerald-500: #059669;
+  --emerald-400: #10b981;
+  --emerald-600: #047857;
+  --emerald-glow: rgba(5, 150, 105, 0.1);
+
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, textarea, select {
+  font-family: inherit;
+}
+
+/* Scrollbar sutil */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-card);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--emerald-600);
+}
