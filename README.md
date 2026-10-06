@@ -1,7 +1,10 @@
 # 🥗 NutraLive — Plataforma de Nutrición Terapéutica & Escudo Hepático
 
 > **Ecosistema:** Suite de Salud & Biotecnología (Aplicación Oficial Independiente)  
-> **Versión:** v1.0.0-alpha  
+> **Versión:** v1.0.0-alpha (Producción Web & GitHub Pages Ready)  
+> **URL Producción:** https://mauriciano47-pixel.github.io/nutralive/  
+> **URL Acortada:** https://tinyurl.com/nutralive-app  
+> **Repositorio GitHub:** https://github.com/mauriciano47-pixel/nutralive  
 > **Autor & Propietario:** Mauricio Uribe Maldonado  
 
 ---
