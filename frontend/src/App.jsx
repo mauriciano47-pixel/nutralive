@@ -3,6 +3,8 @@ import SemaforoEscaneo from './components/SemaforoEscaneo';
 import BitacoraMarcadores from './components/BitacoraMarcadores';
 import RecetasFamiliares from './components/RecetasFamiliares';
 import ResumenConsulta from './components/ResumenConsulta';
+import SplashScreenNutraLive from './components/SplashScreenNutraLive';
+import LobbyNutraLive from './components/LobbyNutraLive';
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
@@ -10,6 +12,20 @@ export default function App() {
   const [tab, setTab] = useState('semaforo');
   const [theme, setTheme] = useState('dark');
   const [backendStatus, setBackendStatus] = useState('checking');
+
+  // Control de Pre-pantalla de 3 segundos
+  const [mostrarSplash, setMostrarSplash] = useState(true);
+
+  // Control de Verificación de Usuario
+  const [usuarioActivo, setUsuarioActivo] = useState(() => {
+    try {
+      const guardado = localStorage.getItem('nutralive_usuario_sesion');
+      return guardado ? JSON.parse(guardado) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [mostrarLobby, setMostrarLobby] = useState(false);
 
   // Alternar tema y sincronizar con atributo en body/html
   useEffect(() => {
@@ -39,8 +55,32 @@ export default function App() {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   };
 
+  const manejarVerificacionExitosa = (nuevoUsuario) => {
+    setUsuarioActivo(nuevoUsuario);
+    try {
+      localStorage.setItem('nutralive_usuario_sesion', JSON.stringify(nuevoUsuario));
+    } catch {
+      // Ignorar error de almacenamiento
+    }
+    setMostrarLobby(false);
+  };
+
+  const cerrarSesionOModificar = () => {
+    setMostrarLobby(true);
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* 1. Pre-pantalla de iniciación de 3 segundos */}
+      {mostrarSplash && (
+        <SplashScreenNutraLive onCompletado={() => setMostrarSplash(false)} />
+      )}
+
+      {/* 2. Modal de Verificación de Usuario al inicio */}
+      {(!mostrarSplash && (!usuarioActivo || mostrarLobby)) && (
+        <LobbyNutraLive onVerificacionExitosa={manejarVerificacionExitosa} />
+      )}
+
       {/* Barra de Navegación Superior */}
       <header style={{
         background: 'var(--bg-secondary)',
@@ -98,8 +138,38 @@ export default function App() {
             </div>
           </div>
 
-          {/* Estado de Conexión & Controles */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Usuario Verificado & Estado */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {usuarioActivo && (
+              <button
+                type="button"
+                onClick={cerrarSesionOModificar}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-emerald)',
+                  color: 'var(--text-main)',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                title="Hacer clic para cambiar de usuario o perfil"
+              >
+                <span>{usuarioActivo.tipo === 'especialista' ? '🩺' : '👤'}</span>
+                <span>{usuarioActivo.nombre}</span>
+                {usuarioActivo.paciente?.nombre && (
+                  <span style={{ color: 'var(--emerald-400)', fontSize: '0.72rem' }}>
+                    ({usuarioActivo.paciente.nombre})
+                  </span>
+                )}
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>⚙️</span>
+              </button>
+            )}
+
             <div style={{
               display: 'flex',
               alignItems: 'center',
