@@ -5,6 +5,8 @@ import RecetasFamiliares from './components/RecetasFamiliares';
 import ResumenConsulta from './components/ResumenConsulta';
 import SplashScreenNutraLive from './components/SplashScreenNutraLive';
 import LobbyNutraLive from './components/LobbyNutraLive';
+import ModalPlanesNutraLive from './components/ModalPlanesNutraLive';
+import { getSubscriptionState } from './utils/stripeService';
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
@@ -26,6 +28,8 @@ export default function App() {
     }
   });
   const [mostrarLobby, setMostrarLobby] = useState(false);
+  const [mostrarModalPlanes, setMostrarModalPlanes] = useState(false);
+  const [suscripcion, setSuscripcion] = useState(() => getSubscriptionState());
 
   // Alternar tema y sincronizar con atributo en body/html
   useEffect(() => {
@@ -193,6 +197,32 @@ export default function App() {
             </div>
 
             <button
+              onClick={() => setMostrarModalPlanes(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-md)',
+                background: suscripcion.isActive
+                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%)'
+                  : 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.2) 100%)',
+                border: suscripcion.isActive
+                  ? '1px solid var(--border-emerald)'
+                  : '1px solid rgba(245, 158, 11, 0.4)',
+                color: suscripcion.isActive ? 'var(--emerald-400)' : '#f59e0b',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              title="Ver planes de suscripción y licencia clínica"
+            >
+              <span>{suscripcion.isActive ? '⭐' : '🛡️'}</span>
+              <span>{suscripcion.isActive ? 'PLAN PRO ACTIVO' : 'PLANES PRO'}</span>
+            </button>
+
+            <button
               onClick={toggleTheme}
               aria-label="Cambiar tema claro u oscuro"
               style={{
@@ -281,6 +311,13 @@ export default function App() {
           </p>
         </div>
       </footer>
+
+      {/* 3. Modal de Planes de Suscripción Stripe */}
+      <ModalPlanesNutraLive
+        isOpen={mostrarModalPlanes}
+        onClose={() => setMostrarModalPlanes(false)}
+        onSubscriptionChanged={(nuevaSub) => setSuscripcion(nuevaSub)}
+      />
     </div>
   );
 }

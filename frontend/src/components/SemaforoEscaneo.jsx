@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { calculateHepaticTrafficLight } from '../utils/clinicalAlgorithms';
 
 const PRESETS = [
   {
@@ -58,63 +59,9 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
         throw new Error("Respuesta no OK");
       }
     } catch {
-      // Fallback Offline-First Autónomo
-      const textLower = inputText.toLowerCase();
-      const hasFructose = textLower.includes("jarabe de ma") || textLower.includes("fructosa") || textLower.includes("jmaf");
-      const hasTrans = textLower.includes("hidrogenado") || textLower.includes("trans");
-      const hasMaltodextrin = textLower.includes("maltodextrina");
-
-      let trafficLight = "GREEN";
-      let title = "APROBADO & SEGURO — Libre de Fructosa Oculta";
-      let advice = "No se detectaron ingredientes que sobrecarguen el metabolismo hepático.";
-      const harmful = [];
-
-      if (hasFructose) {
-        trafficLight = "RED";
-        title = "ALERTA HEPÁTICA — No Recomendado en Hígado Graso";
-        advice = "Contiene jarabe de maíz de alta fructosa o fructosa libre, inductor directo de lipogénesis de novo en el hígado.";
-        harmful.push({
-          name: "Jarabe de Maíz de Alta Fructosa",
-          risk_level: "RED",
-          mechanism: "El hígado metaboliza la fructosa libre como grasa de forma inmediata.",
-          alternative: "Fruta entera fresca o endulzantes no calóricos como Stevia pura."
-        });
-      }
-      if (hasTrans) {
-        trafficLight = "RED";
-        title = "ALERTA HEPÁTICA — No Recomendado en Hígado Graso";
-        harmful.push({
-          name: "Grasas Vegetales Hidrogenadas / Trans",
-          risk_level: "RED",
-          mechanism: "Generan inflamación sistémica y estrés celular en el hepatocito.",
-          alternative: "Aceite de oliva virgen extra o aceite de aguacate."
-        });
-      }
-      if (hasMaltodextrin && trafficLight !== "RED") {
-        trafficLight = "YELLOW";
-        title = "PRECAUCIÓN — Carga Glucémica Elevada";
-        advice = "La maltodextrina dispara picos de glucosa e insulina que estimulan acumulación de grasa.";
-        harmful.push({
-          name: "Maltodextrina",
-          risk_level: "YELLOW",
-          mechanism: "Índice glucémico superior a 110.",
-          alternative: "Avena o harinas integrales de grano entero."
-        });
-      }
-
-      setResult({
-        product_name: productName || "Producto Analizado",
-        traffic_light: trafficLight,
-        verdict_title: title,
-        clinical_advice: advice,
-        detected_harmful_count: harmful.length,
-        harmful_items: harmful,
-        beneficial_items: trafficLight === "GREEN" ? [{ name: "Ingredientes Naturales Protectores", mechanism: "Fibra soluble y antioxidantes saludables." }] : [],
-        healthy_swap: trafficLight === "RED" ? {
-          product: "Sustituto Natural Casero",
-          reasoning: "Preparar la versión casera con ingredientes integrales sin jarabes industriales."
-        } : null
-      });
+      // Fallback Autónomo con Motor de Algoritmos Clínicos Centralizado
+      const clinicalResult = calculateHepaticTrafficLight(inputText, productName || "Producto Analizado");
+      setResult(clinicalResult);
     } finally {
       setLoading(false);
     }

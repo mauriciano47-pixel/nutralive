@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,12 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-l80q42rnb8-766m%7uuex5akxo6#-r-n$ss5l6@rulaqv_1a&y'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-l80q42rnb8-766m%7uuex5akxo6#-r-n$ss5l6@rulaqv_1a&y')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost,nutralive.pages.dev,nutralive.mauriciano47.workers.dev').split(',') if h.strip()]
 
 
 # Application definition
@@ -129,7 +130,16 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL', 'False').lower() in ('true', '1')
+CORS_ALLOWED_ORIGINS = [
+    'https://nutralive.pages.dev',
+    'https://nutralive.mauriciano47.workers.dev',
+    'https://mauriciano47-pixel.github.io',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
 CORS_ALLOW_CREDENTIALS = True
 
 # Django REST Framework Configuration
