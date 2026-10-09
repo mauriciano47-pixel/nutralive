@@ -92,3 +92,50 @@ input, textarea, select {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--emerald-600);
 }
+
+/* ==========================================================================
+   ESTILOS MÉDICOS DE IMPRESIÓN A4 / CARTA (Clinical Print Standard)
+   ========================================================================== */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+  }
+
+  header, footer, nav, .no-print, button {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .clinical-sheet {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    padding: 1.5cm !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+
+  .clinical-table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  .clinical-table th, .clinical-table td {
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    padding: 8px !important;
+  }
+}
+

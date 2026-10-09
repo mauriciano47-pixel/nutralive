@@ -6,9 +6,16 @@ import ResumenConsulta from './components/ResumenConsulta';
 import SplashScreenNutraLive from './components/SplashScreenNutraLive';
 import LobbyNutraLive from './components/LobbyNutraLive';
 import ModalPlanesNutraLive from './components/ModalPlanesNutraLive';
+import ComparadorFrutaJugo from './components/ComparadorFrutaJugo';
 import { getSubscriptionState } from './utils/stripeService';
 
 const API_BASE_URL = 'http://127.0.0.1:8000/api';
+
+const INITIAL_LOGS = [
+  { id: 1, date: '2026-08-05', alt_tgp: 54.0, ast_tgo: 42.0, ggt: 38.0, weight_kg: 35.8, notes: 'Inicio formal de dieta baja en fructosa. Transaminasas elevadas.', adherence: 70 },
+  { id: 2, date: '2026-09-04', alt_tgp: 38.0, ast_tgo: 31.0, ggt: 29.0, weight_kg: 35.1, notes: 'Descenso notable (-16 U/L). Gran adherencia a comidas caseras.', adherence: 90 },
+  { id: 3, date: '2026-10-03', alt_tgp: 24.5, ast_tgo: 23.0, ggt: 21.0, weight_kg: 34.6, notes: '¡Normalización enzimática dentro de rango pediátrico óptimo (<25 U/L)!', adherence: 95 }
+];
 
 export default function App() {
   const [tab, setTab] = useState('semaforo');
@@ -27,6 +34,26 @@ export default function App() {
       return null;
     }
   });
+
+  // Estado compartido y persistente de Bitácora Metabólica
+  const [logs, setLogs] = useState(() => {
+    try {
+      const guardados = localStorage.getItem('nutralive_metabolic_logs');
+      if (guardados) {
+        const parsed = JSON.parse(guardados);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_LOGS;
+  });
+
+  const handleActualizarLogs = (nuevosLogs) => {
+    setLogs(nuevosLogs);
+    try {
+      localStorage.setItem('nutralive_metabolic_logs', JSON.stringify(nuevosLogs));
+    } catch {}
+  };
+
   const [mostrarLobby, setMostrarLobby] = useState(false);
   const [mostrarModalPlanes, setMostrarModalPlanes] = useState(false);
   const [suscripcion, setSuscripcion] = useState(() => getSubscriptionState());
@@ -257,6 +284,7 @@ export default function App() {
             { id: 'semaforo', label: '🚦 Semáforo Hepático', desc: 'Filtro Fructosa' },
             { id: 'bitacora', label: '📈 Curva ALT / AST', desc: 'Biomarcadores' },
             { id: 'recetas', label: '🍳 Recetas Familiares', desc: 'Cero Frustración' },
+            { id: 'mitos', label: '🍊 Fruta vs Jugo', desc: 'Escudo Fibra' },
             { id: 'resumen', label: '🩺 Resumen Médico', desc: 'Portal Consulta' },
           ].map((t) => (
             <button
@@ -286,9 +314,10 @@ export default function App() {
       {/* Contenido Dinámico de la Pestaña Activa */}
       <main style={{ flex: 1, padding: '1rem 0' }}>
         {tab === 'semaforo' && <SemaforoEscaneo apiBaseUrl={API_BASE_URL} />}
-        {tab === 'bitacora' && <BitacoraMarcadores apiBaseUrl={API_BASE_URL} />}
+        {tab === 'bitacora' && <BitacoraMarcadores apiBaseUrl={API_BASE_URL} logs={logs} onActualizarLogs={handleActualizarLogs} />}
         {tab === 'recetas' && <RecetasFamiliares />}
-        {tab === 'resumen' && <ResumenConsulta />}
+        {tab === 'mitos' && <ComparadorFrutaJugo />}
+        {tab === 'resumen' && <ResumenConsulta usuarioActivo={usuarioActivo} logs={logs} />}
       </main>
 
       {/* Pie de Página */}

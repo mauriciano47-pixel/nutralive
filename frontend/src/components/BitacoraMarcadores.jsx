@@ -1,38 +1,61 @@
 import React, { useState, useEffect } from 'react';
 
-export default function BitacoraMarcadores({ apiBaseUrl }) {
-  const [logs, setLogs] = useState([
-    {
-      id: 1,
-      date: '2026-08-05',
-      alt_tgp: 54.0,
-      ast_tgo: 42.0,
-      ggt: 38.0,
-      weight_kg: 35.8,
-      notes: 'Inicio formal de dieta baja en fructosa. Transaminasas elevadas.',
-      adherence: 70
-    },
-    {
-      id: 2,
-      date: '2026-09-04',
-      alt_tgp: 38.0,
-      ast_tgo: 31.0,
-      ggt: 29.0,
-      weight_kg: 35.1,
-      notes: 'Descenso notable (-16 U/L). Gran adherencia a comidas caseras.',
-      adherence: 90
-    },
-    {
-      id: 3,
-      date: '2026-10-03',
-      alt_tgp: 24.5,
-      ast_tgo: 23.0,
-      ggt: 21.0,
-      weight_kg: 34.6,
-      notes: '¡Normalización enzimática dentro de rango pediátrico óptimo (<25 U/L)!',
-      adherence: 95
+const INITIAL_LOGS = [
+  {
+    id: 1,
+    date: '2026-08-05',
+    alt_tgp: 54.0,
+    ast_tgo: 42.0,
+    ggt: 38.0,
+    weight_kg: 35.8,
+    notes: 'Inicio formal de dieta baja en fructosa. Transaminasas elevadas.',
+    adherence: 70
+  },
+  {
+    id: 2,
+    date: '2026-09-04',
+    alt_tgp: 38.0,
+    ast_tgo: 31.0,
+    ggt: 29.0,
+    weight_kg: 35.1,
+    notes: 'Descenso notable (-16 U/L). Gran adherencia a comidas caseras.',
+    adherence: 90
+  },
+  {
+    id: 3,
+    date: '2026-10-03',
+    alt_tgp: 24.5,
+    ast_tgo: 23.0,
+    ggt: 21.0,
+    weight_kg: 34.6,
+    notes: '¡Normalización enzimática dentro de rango pediátrico óptimo (<25 U/L)!',
+    adherence: 95
+  }
+];
+
+export default function BitacoraMarcadores({ apiBaseUrl, logs: propLogs, onActualizarLogs }) {
+  const [internalLogs, setInternalLogs] = useState(() => {
+    try {
+      const guardados = localStorage.getItem('nutralive_metabolic_logs');
+      if (guardados) {
+        const parsed = JSON.parse(guardados);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_LOGS;
+  });
+
+  const logs = propLogs || internalLogs;
+
+  const actualizarLogsState = (nuevosLogs) => {
+    setInternalLogs(nuevosLogs);
+    try {
+      localStorage.setItem('nutralive_metabolic_logs', JSON.stringify(nuevosLogs));
+    } catch {}
+    if (onActualizarLogs) {
+      onActualizarLogs(nuevosLogs);
     }
-  ]);
+  };
 
   const [loading, setLoading] = useState(false);
   const [nuevoControl, setNuevoControl] = useState({
@@ -52,11 +75,12 @@ export default function BitacoraMarcadores({ apiBaseUrl }) {
         if (res.ok) {
           const data = await res.json();
           if (data && data.results && data.results.length > 0) {
-            setLogs(data.results.reverse());
+            const apiLogs = data.results.reverse();
+            actualizarLogsState(apiLogs);
           }
         }
       } catch {
-        // Mantiene el estado fallback offline precargado de Sofía M.
+        // Modo Offline-First autónomo: mantiene los logs de localStorage
       } finally {
         setLoading(false);
       }
@@ -79,7 +103,7 @@ export default function BitacoraMarcadores({ apiBaseUrl }) {
       adherence: 95
     };
 
-    setLogs([...logs, nuevoItem]);
+    actualizarLogsState([...logs, nuevoItem]);
     setNuevoControl({
       date: new Date().toISOString().split('T')[0],
       alt_tgp: '',
@@ -88,6 +112,22 @@ export default function BitacoraMarcadores({ apiBaseUrl }) {
       weight_kg: '',
       notes: ''
     });
+  };
+
+  const exportarDatosJSON = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logs, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `nutralive_controles_hepaticos_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const reiniciarHistorial = () => {
+    if (window.confirm("¿Deseas restablecer la bitácora a los registros iniciales de muestra?")) {
+      actualizarLogsState(INITIAL_LOGS);
+    }
   };
 
   // Cálculo de puntos para gráfico SVG interactivo
@@ -389,9 +429,44 @@ export default function BitacoraMarcadores({ apiBaseUrl }) {
 
       {/* Historial de Controles */}
       <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', padding: '1.25rem' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '1rem' }}>
-          📋 Historial Cronológico de Controles
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+            📋 Historial Cronológico de Controles
+          </h3>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={exportarDatosJSON}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid var(--border-emerald)',
+                color: 'var(--emerald-400)',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+              title="Descargar copia local de respaldo de todos los controles"
+            >
+              📥 Exportar JSON
+            </button>
+            <button
+              onClick={reiniciarHistorial}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-sm)',
+                background: 'transparent',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-muted)',
+                fontSize: '0.78rem',
+                cursor: 'pointer'
+              }}
+              title="Restablecer registros de muestra iniciales"
+            >
+              🔄 Restablecer
+            </button>
+          </div>
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {logs.slice().reverse().map((log) => (
             <div key={log.id} style={{
