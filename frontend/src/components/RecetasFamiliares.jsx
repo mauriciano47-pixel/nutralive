@@ -75,6 +75,97 @@ const RECETAS_INIT = [
       "Servir inmediatamente con hielo para conservar sus antioxidantes activos."
     ],
     hepaticBenefit: "Las antocianinas de los arándanos frenan la peroxidación lipídica en los hepatocitos y la chía aporta omega-3 anti-inflamatorio."
+  },
+  {
+    id: 4,
+    title: "Frasquito de Pudín de Chía con Yogur Natural, Frutillas y Almendras",
+    category: "Colaciones & Lonchera Escolar",
+    time: "10 min (+ reposo)",
+    servings: 1,
+    difficulty: "Muy Fácil",
+    kidApproved: true,
+    summary: "Gel cremoso rico en fibra soluble y omega-3 para llevar al colegio. Se prepara la noche anterior y se empaca en frío.",
+    ingredients: [
+      "1/2 taza yogur natural sin azúcar (o leche descremada)",
+      "1 cucharada semillas de chía enteras",
+      "1/2 taza frutillas o frambuesas frescas picadas",
+      "1 cucharada almendras laminadas o picadas"
+    ],
+    steps: [
+      "La noche anterior, mezcla en un frasquito hermético el yogur con la chía para formar el gel cremoso.",
+      "Tapa y refrigera toda la noche (la chía atrapa el líquido y estabiliza la saciedad).",
+      "En la mañana, corona con las frutillas frescas picadas y las almendras laminadas.",
+      "Empacar en la lonchera con gel refrigerante para el recreo escolar."
+    ],
+    hepaticBenefit: "Las antocianinas de los frutos rojos combaten la inflamación celular del hepatocito. La fibra mucilaginosa de la chía y las grasas saludables de las almendras frenan los picos de glucosa e insulina, previniendo la lipogénesis de novo."
+  },
+  {
+    id: 5,
+    title: "Mix Crocante 'Antioxidante' de Frutos Rojos, Nueces y Semillas de Zapallo",
+    category: "Colaciones & Lonchera Escolar",
+    time: "3 min",
+    servings: 1,
+    difficulty: "Muy Fácil",
+    kidApproved: true,
+    summary: "Snack crujiente y portátil para el recreo. Sustituto perfecto de galletas ultraprocesadas y snacks fritos.",
+    ingredients: [
+      "1/2 taza arándanos y moras frescas enteras (bien lavadas y secas)",
+      "4 a 5 mitades de nueces picadas",
+      "1 cucharada semillas de zapallo (calabaza) sin sal"
+    ],
+    steps: [
+      "Lavar y secar muy bien los arándanos y moras para mantener crujientes los frutos secos.",
+      "En un contenedor pequeño para lonchera, disponer los frutos rojos a un lado.",
+      "Colocar a un lado las nueces y semillas de zapallo para mantener su textura crocante hasta el recreo."
+    ],
+    hepaticBenefit: "Las semillas de zapallo son ricas en magnesio y las nueces aportan vitamina E (nutriente con evidencia clínica para reducir esteatosis y balonamiento en MASLD), protegiendo las membranas del hígado frente al daño oxidativo."
+  },
+  {
+    id: 6,
+    title: "Gajos de Manzana Verde con 'Dip' de Frutillas, Yogur y Linaza",
+    category: "Colaciones & Lonchera Escolar",
+    time: "5 min",
+    servings: 1,
+    difficulty: "Fácil",
+    kidApproved: true,
+    summary: "Recreo interactivo: los niños untan sus gajos crujientes en una crema rosada dulce 100% natural sin azúcar añadida.",
+    ingredients: [
+      "1/2 manzana verde pequeña cortada en gajos (con cáscara bien limpia)",
+      "Gotas de jugo de limón natural (para evitar oxidación enzimática)",
+      "2 a 3 cucharadas yogur natural sin azúcar",
+      "1 cucharadita linaza o chía molida",
+      "2 frutillas frescas molidas con tenedor"
+    ],
+    steps: [
+      "Moler las frutillas con el yogur y la linaza hasta formar un aderezo suave y rosado sin azúcar.",
+      "Cortar la manzana verde en gajos manteniendo su cáscara y humedecer con gotas de limón.",
+      "Empacar los gajos junto a un pocillo hermético con el dip para untar en el colegio."
+    ],
+    hepaticBenefit: "La cáscara de la manzana aporta pectina, una fibra soluble que atrapa grasas y sales biliares en el intestino facilitando su eliminación fecal y reduciendo la absorción esteatógena."
+  },
+  {
+    id: 7,
+    title: "Compota Rústica Tibia de Manzana, Frutillas y Chía (Cero Azúcar)",
+    category: "Colaciones & Lonchera Escolar",
+    time: "10 min",
+    servings: 2,
+    difficulty: "Fácil",
+    kidApproved: true,
+    summary: "Postre tibio reconfortante o colación para días fríos. Desprende dulzor frutal natural caramelizado sin azúcar.",
+    ingredients: [
+      "1/2 manzana verde en cubos con su cáscara",
+      "1/2 taza frutillas picadas",
+      "1/4 taza agua pura",
+      "1 pizca canela en polvo (Ceilán)",
+      "1 cucharadita semillas de chía"
+    ],
+    steps: [
+      "Cocinar la manzana con las frutillas, agua y canela a fuego suave durante 8 minutos hasta ablandar.",
+      "Aplastar ligeramente con tenedor conservando trozos rústicos de cáscara para mantener la fibra.",
+      "Retirar del fuego, incorporar la chía y mezclar.",
+      "Servir tibio en casa o envasar en frasquito térmico para la lonchera escolar."
+    ],
+    hepaticBenefit: "La canela optimiza la sensibilidad a la insulina. La fruta cocida con su fibra entera libera dulzor natural sin provocar sobrecarga de fructosa libre al hepatocito."
   }
 ];
 
@@ -116,7 +207,7 @@ export default function RecetasFamiliares() {
 
       {/* Filtros de Categoría */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {['TODAS', 'Almuerzos & Cenas', 'Desayunos & Meriendas'].map((cat) => (
+        {['TODAS', 'Colaciones & Lonchera Escolar', 'Almuerzos & Cenas', 'Desayunos & Meriendas'].map((cat) => (
           <button
             key={cat}
             onClick={() => setCategoriaFiltro(cat)}

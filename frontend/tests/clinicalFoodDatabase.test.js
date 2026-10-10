@@ -59,3 +59,25 @@ test('5. Robustez: Términos genéricos reciben evaluación médica completa sin
     assert.ok(evaluacion.healthy_swap, 'Alimentos no verdes deben tener sugerencia de cambio seguro');
   }
 });
+
+test('6. Superalimentos Protectores: Encuentra Semillas de Chía y Zapallo como verdes aprobados', () => {
+  const matchesChia = searchFoodCatalog('chia');
+  assert.ok(matchesChia.length > 0, 'Debe encontrar chía');
+  assert.strictEqual(matchesChia[0].traffic_light, 'GREEN');
+  assert.ok(matchesChia[0].clinical_advice.includes('lipogénesis'));
+
+  const matchesZapallo = searchFoodCatalog('semillas de zapallo');
+  assert.ok(matchesZapallo.length > 0, 'Debe encontrar semillas de zapallo');
+  assert.strictEqual(matchesZapallo[0].traffic_light, 'GREEN');
+});
+
+test('7. Lonchera Escolar: Pudín de Chía y Mix Crocante clasificados como protectores anti-MASLD', () => {
+  const matchesPudin = searchFoodCatalog('pudin de chia');
+  assert.ok(matchesPudin.length > 0, 'Debe encontrar pudín de chía');
+  assert.strictEqual(matchesPudin[0].traffic_light, 'GREEN');
+
+  const matchesMix = searchFoodCatalog('mix crocante');
+  assert.ok(matchesMix.length > 0, 'Debe encontrar mix crocante');
+  assert.strictEqual(matchesMix[0].traffic_light, 'GREEN');
+});
+

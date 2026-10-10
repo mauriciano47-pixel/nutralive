@@ -831,6 +831,84 @@ export const CLINICAL_FOOD_CATALOG = [
       product: 'Sashimi de Salmón Fresco con Ensalada de Pepino y Palta al Sésamo',
       reasoning: 'Omega-3 de máxima pureza, fibra y grasas monoinsaturadas con 0% azúcares refinados.'
     }
+  },
+  // =========================================================================
+  // 🟢 COLACIONES ESCOLARES & SUPERALIMENTOS HEPATOPROTECTORES
+  // =========================================================================
+  {
+    id: 'semillas-chia',
+    name: 'Semillas de Chía Enteras o Molidas',
+    brand: 'Superalimento Natural',
+    category: 'GRASAS Y FRUTOS SECOS',
+    traffic_light: 'GREEN',
+    keywords: ['chia', 'semilla de chia', 'semillas de chia', 'gel de chia', 'omega 3 vegetal'],
+    ingredients_raw: 'Semillas de chía 100% puras (mucílago de fibra soluble, ácido alfa-linolénico ALA).',
+    harmful_items: [],
+    clinical_advice: 'Al hidratarse forman un gel soluble que retrasa el vaciamiento gástrico, aplanando la curva de glucosa e insulina. Excelente protector contra la lipogénesis hepática de novo.',
+    healthy_swap: {
+      product: 'Pudín de Chía con Yogur Natural o Leche sin Azúcar',
+      reasoning: 'Sustituto ideal para postres lácteos comerciales saturados de azúcar o almidón modificado.'
+    }
+  },
+  {
+    id: 'semillas-zapallo',
+    name: 'Semillas de Zapallo / Calabaza sin Sal',
+    brand: 'Semillas Naturales',
+    category: 'GRASAS Y FRUTOS SECOS',
+    traffic_light: 'GREEN',
+    keywords: ['semilla de zapallo', 'semillas de zapallo', 'semilla de calabaza', 'semillas de calabaza', 'pepitas de calabaza'],
+    ingredients_raw: 'Semillas de zapallo peladas crudas o tostadas sin sal.',
+    harmful_items: [],
+    clinical_advice: 'Fuente sobresaliente de magnesio y zinc. El magnesio mejora la señalización del receptor de insulina en el hepatocito y reduce la resistencia insulínica.',
+    healthy_swap: {
+      product: 'Mix de Semillas de Zapallo con Nueces y Arándanos',
+      reasoning: 'Reemplazo directo para papas fritas y snacks de quiosco escolar con grasas trans.'
+    }
+  },
+  {
+    id: 'pudin-chia-yogur-frutillas',
+    name: 'Pudín de Chía con Yogur Natural y Frutillas (Colación Lonchera)',
+    brand: 'Preparación Casera NutraLive',
+    category: 'COMIDAS RÁPIDAS Y PLATOS',
+    traffic_light: 'GREEN',
+    keywords: ['pudin de chia', 'pudding de chia', 'postre de chia', 'frasquito de chia', 'colacion de chia', 'yogur con chia'],
+    ingredients_raw: 'Yogur natural sin azúcar, semillas de chía hidratadas, frutillas frescas picadas, almendras laminadas.',
+    harmful_items: [],
+    clinical_advice: 'Aporte de antocianinas que frenan la inflamación en células hepáticas, fibra soluble que retiene azúcares en la luz intestinal y saciedad prolongada para niños en etapa escolar.',
+    healthy_swap: {
+      product: 'Pudín de Chía Casero con Frutillas',
+      reasoning: 'Reemplaza a los yogures azucarados infantiles y postres ultraprocesados.'
+    }
+  },
+  {
+    id: 'mix-crocante-nueces-zapallo',
+    name: 'Mix Crocante de Frutos Rojos, Nueces y Semillas de Zapallo',
+    brand: 'Snack Escolar Saludable',
+    category: 'GRASAS Y FRUTOS SECOS',
+    traffic_light: 'GREEN',
+    keywords: ['mix crocante', 'mix de frutos secos', 'nueces con arandanos', 'snack de nueces', 'mix antioxidante', 'colacion escolar frutos secos'],
+    ingredients_raw: 'Arándanos frescos enteros, moras, nueces en mariposa picadas, semillas de zapallo sin sal.',
+    harmful_items: [],
+    clinical_advice: 'Vitamina E natural procedente de las nueces (nutriente con respaldo clínico para reducir esteatohepatitis) combinada con magnesio mitocondrial y polifenoles.',
+    healthy_swap: {
+      product: 'Mix Crocante Casero para Recreo',
+      reasoning: 'Elimina el consumo de barritas comerciales con jarabe de maíz de alta fructosa (JMAF).'
+    }
+  },
+  {
+    id: 'compota-rustica-manzana-chia',
+    name: 'Compota Rústica Tibia de Manzana Verde, Frutillas y Chía',
+    brand: 'Postre Terapéutico NutraLive',
+    category: 'COMIDAS RÁPIDAS Y PLATOS',
+    traffic_light: 'GREEN',
+    keywords: ['compota', 'compota de manzana', 'compota rustica', 'pure de manzana cocida', 'postre de manzana tibio'],
+    ingredients_raw: 'Manzana verde con piel picada en cubos, frutillas frescas, agua, canela pura de Ceilán, semillas de chía.',
+    harmful_items: [],
+    clinical_advice: 'Pectina intacta de la piel que secuestra lípidos intraluminales, canela sensibilizadora de insulina y dulzor caramelizado 100% natural sin fructosa refinada libre.',
+    healthy_swap: {
+      product: 'Compota Rústica con Piel sin Azúcar',
+      reasoning: 'Sustituto superior a compotas en sobre (pouches) procesadas con concentrados azucarados.'
+    }
   }
 ];
 
