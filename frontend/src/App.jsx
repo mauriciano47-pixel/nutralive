@@ -25,11 +25,17 @@ export default function App() {
   // Control de Pre-pantalla de 3 segundos
   const [mostrarSplash, setMostrarSplash] = useState(true);
 
-  // Control de Verificación de Usuario
+  // Control de Verificación de Usuario Inicial (Google o Creación de Cuenta)
   const [usuarioActivo, setUsuarioActivo] = useState(() => {
     try {
       const guardado = localStorage.getItem('nutralive_usuario_sesion');
-      return guardado ? JSON.parse(guardado) : null;
+      if (guardado) {
+        const parsed = JSON.parse(guardado);
+        if (parsed && parsed.cuentaVerificada) {
+          return parsed;
+        }
+      }
+      return null;
     } catch {
       return null;
     }
@@ -116,6 +122,14 @@ export default function App() {
     setMostrarLobby(true);
   };
 
+  const cerrarSesion = () => {
+    try {
+      localStorage.removeItem('nutralive_usuario_sesion');
+    } catch {}
+    setUsuarioActivo(null);
+    setMostrarLobby(true);
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* 1. Pre-pantalla de iniciación de 3 segundos */}
@@ -188,33 +202,57 @@ export default function App() {
           {/* Usuario Verificado & Estado */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             {usuarioActivo && (
-              <button
-                type="button"
-                onClick={cerrarSesionOModificar}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '4px 10px',
-                  borderRadius: 'var(--radius-full)',
-                  background: 'var(--bg-card)',
-                  border: '1px solid var(--border-emerald)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-                title="Hacer clic para cambiar de usuario o perfil"
-              >
-                <span>{usuarioActivo.tipo === 'especialista' ? '🩺' : '👤'}</span>
-                <span>{usuarioActivo.nombre}</span>
-                {usuarioActivo.paciente?.nombre && (
-                  <span style={{ color: 'var(--emerald-400)', fontSize: '0.72rem' }}>
-                    ({usuarioActivo.paciente.nombre})
-                  </span>
-                )}
-                <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)' }}>⚙️</span>
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={cerrarSesionOModificar}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-emerald)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                  title={`Sesión activa: ${usuarioActivo.email || usuarioActivo.nombre}. Clic para ver perfil`}
+                >
+                  {usuarioActivo.metodoAuth === 'google' ? (
+                    <span style={{ fontSize: '0.72rem', background: '#ffffff', color: '#1a73e8', padding: '1px 5px', borderRadius: 8, fontWeight: 900 }}>
+                      G
+                    </span>
+                  ) : (
+                    <span>{usuarioActivo.tipo === 'especialista' ? '🩺' : '👤'}</span>
+                  )}
+                  <span>{usuarioActivo.nombre}</span>
+                  {usuarioActivo.paciente?.nombre && (
+                    <span style={{ color: 'var(--emerald-400)', fontSize: '0.72rem' }}>
+                      ({usuarioActivo.paciente.nombre})
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={cerrarSesion}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid var(--border-color)',
+                    color: 'var(--text-dim)',
+                    borderRadius: 'var(--radius-full)',
+                    padding: '4px 8px',
+                    fontSize: '0.72rem',
+                    cursor: 'pointer',
+                    fontWeight: 600
+                  }}
+                  title="Cerrar sesión y cambiar cuenta"
+                >
+                  Salir 🚪
+                </button>
+              </div>
             )}
 
             <div style={{
