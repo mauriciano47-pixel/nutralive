@@ -28,7 +28,9 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
   // Sugerencias reactivas al escribir
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  
   const searchContainerRef = useRef(null);
+  const resultCardRef = useRef(null);
 
   // Cerrar sugerencias al hacer clic fuera
   useEffect(() => {
@@ -51,7 +53,8 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
     setSearchTerm(val);
 
     if (val.trim().length >= 1) {
-      const matches = searchFoodCatalog(val, selectedCategory, trafficFilter);
+      // Buscar en todo el catálogo sin restricciones de categoría para la barra predictiva
+      const matches = searchFoodCatalog(val, 'TODAS', 'ALL');
       setSuggestions(matches.slice(0, 6));
       setShowSuggestions(true);
     } else {
@@ -60,7 +63,7 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
     }
   };
 
-  // Función principal: BUSCAR Y CLASIFICAR ALIMENTO
+  // Función principal: BUSCAR Y CLASIFICAR ALIMENTO INMEDIATAMENTE
   const ejecutarBusqueda = (termToSearch = null) => {
     const term = (termToSearch !== null ? termToSearch : searchTerm).trim();
     if (!term) return;
@@ -69,8 +72,8 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
     setShowSuggestions(false);
     setHasSearched(true);
 
-    // 1. Obtener todas las coincidencias del catálogo clínico
-    const catalogMatches = searchFoodCatalog(term, selectedCategory, trafficFilter);
+    // 1. Obtener todas las coincidencias del catálogo clínico sin restricciones
+    const catalogMatches = searchFoodCatalog(term, 'TODAS', 'ALL');
     setSearchResults(catalogMatches);
 
     // 2. Realizar la evaluación clínica inmediata del término
@@ -79,20 +82,38 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
       const clinicalEval = classifyFoodSmart(term, '');
       setResult(clinicalEval);
       setLoading(false);
-    }, 80);
+
+      // Scroll suave hacia la tarjeta de resultado
+      setTimeout(() => {
+        if (resultCardRef.current) {
+          resultCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 50);
+    }, 60);
   };
 
   // Seleccionar directamente un alimento del catálogo o de los resultados
   const handleSelectFoodItem = (item) => {
     setSearchTerm(item.name);
     setShowSuggestions(false);
+    setHasSearched(true);
     setLoading(true);
+
+    // Obtener también coincidencias relacionadas de esa familia
+    const matches = searchFoodCatalog(item.name, 'TODAS', 'ALL');
+    setSearchResults(matches);
 
     setTimeout(() => {
       const clinicalEval = classifyFoodSmart(item.name, item.ingredients_raw || '');
       setResult(clinicalEval);
       setLoading(false);
-    }, 60);
+
+      setTimeout(() => {
+        if (resultCardRef.current) {
+          resultCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 50);
+    }, 50);
   };
 
   // Ejecutar análisis de etiqueta cruda de ingredientes
@@ -104,11 +125,11 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
 
     setLoading(true);
 
-    // Si estamos en localhost y hay backend Django disponible, intentar con timeout
+    // Si estamos en localhost y hay backend Django disponible, intentar con timeout estricto
     if (isLocalHost && apiBaseUrl) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1200);
+        const timeoutId = setTimeout(() => controller.abort(), 1000);
 
         const response = await fetch(`${apiBaseUrl}/analyze/`, {
           method: 'POST',
@@ -137,7 +158,7 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
       const clinicalResult = classifyFoodSmart(nameClean || 'Producto Etiquetado', textClean);
       setResult(clinicalResult);
       setLoading(false);
-    }, 100);
+    }, 80);
   };
 
   // Limpiar buscador
@@ -150,26 +171,18 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
     setResult(null);
   };
 
-  // Cambiar categoría y actualizar catálogo visible
+  // Cambiar categoría y actualizar catálogo visible en el explorador
   const handleSelectCategory = (cat) => {
     setSelectedCategory(cat);
-    if (searchTerm.trim()) {
-      const matches = searchFoodCatalog(searchTerm, cat, trafficFilter);
-      setSearchResults(matches);
-    }
   };
 
-  // Cambiar filtro de semáforo
+  // Cambiar filtro de semáforo en el explorador
   const handleSelectTrafficFilter = (tf) => {
     setTrafficFilter(tf);
-    if (searchTerm.trim()) {
-      const matches = searchFoodCatalog(searchTerm, selectedCategory, tf);
-      setSearchResults(matches);
-    }
   };
 
-  // Alimentos destacados para explorar por defecto en la categoría activa
-  const alimentosExplorador = searchFoodCatalog(searchTerm, selectedCategory, trafficFilter).slice(0, 12);
+  // Alimentos del explorador por categoría
+  const alimentosExplorador = searchFoodCatalog('', selectedCategory, trafficFilter).slice(0, 16);
 
   return (
     <div style={{ maxWidth: '880px', margin: '0 auto', padding: '1.5rem 1rem' }}>
@@ -261,14 +274,14 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
       {/* ========================================================================= */}
       {modoActivo === 'buscador' && (
         <div>
-          {/* Barra de Búsqueda Principal con Botón de Acción Directo */}
+          {/* BARRA DE BÚSQUEDA PRINCIPAL */}
           <div style={{
             background: 'var(--bg-card)',
             padding: '1.25rem',
             borderRadius: 'var(--radius-lg)',
             border: '1px solid var(--border-color)',
             boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-            marginBottom: '1.5rem'
+            marginBottom: '1rem'
           }}>
             <label htmlFor="search-input-field" style={{
               display: 'block',
@@ -355,7 +368,7 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
                   }}
                 >
                   <span>🔍</span>
-                  <span>{loading ? 'Buscando...' : 'Buscar Alimento'}</span>
+                  <span>{loading ? 'Analizando...' : 'Buscar Alimento'}</span>
                 </button>
               </div>
 
@@ -439,7 +452,227 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
             </div>
           </div>
 
-          {/* Filtros de Categorías y Semáforo */}
+          {/* ========================================================================= */}
+          {/* ⭐ RESULTADO INMEDIATO: RENDERIZADO JUSTO DEBAJO DE LA BARRA DE BÚSQUEDA  */}
+          {/* ========================================================================= */}
+          {loading && (
+            <div style={{
+              background: 'var(--bg-card)',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-emerald)',
+              padding: '1.5rem',
+              textAlign: 'center',
+              marginBottom: '1.5rem',
+              color: 'var(--emerald-400)',
+              fontWeight: 700
+            }}>
+              <div style={{ fontSize: '1.6rem', marginBottom: '0.5rem' }}>⏳</div>
+              <div>Evaluando seguridad hepática de "{searchTerm}"...</div>
+            </div>
+          )}
+
+          {result && !loading && (
+            <div 
+              ref={resultCardRef}
+              style={{
+                background: 'var(--bg-card)',
+                borderRadius: 'var(--radius-lg)',
+                border: `2px solid ${
+                  result.traffic_light === 'RED' ? 'var(--red-alert)' :
+                  result.traffic_light === 'YELLOW' ? 'var(--yellow-caution)' :
+                  'var(--green-safe)'
+                }`,
+                padding: '1.5rem',
+                animation: 'fadeIn 0.2s ease',
+                boxShadow: `0 8px 30px ${
+                  result.traffic_light === 'RED' ? 'rgba(239, 68, 68, 0.2)' :
+                  result.traffic_light === 'YELLOW' ? 'rgba(245, 158, 11, 0.2)' :
+                  'rgba(16, 185, 129, 0.2)'
+                }`,
+                marginBottom: '1.5rem'
+              }}
+            >
+              {/* Header del resultado */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: 'var(--radius-full)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '2.1rem',
+                  background:
+                    result.traffic_light === 'RED' ? 'var(--red-bg)' :
+                    result.traffic_light === 'YELLOW' ? 'var(--yellow-bg)' :
+                    'var(--green-bg)'
+                }}>
+                  {result.traffic_light === 'RED' ? '🔴' : result.traffic_light === 'YELLOW' ? '🟡' : '🟢'}
+                </div>
+
+                <div style={{ flex: 1, minWidth: '220px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: '0.78rem',
+                      fontWeight: 900,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      padding: '3px 10px',
+                      borderRadius: 'var(--radius-full)',
+                      background:
+                        result.traffic_light === 'RED' ? 'var(--red-bg)' :
+                        result.traffic_light === 'YELLOW' ? 'var(--yellow-bg)' :
+                        'var(--green-bg)',
+                      color:
+                        result.traffic_light === 'RED' ? 'var(--red-alert)' :
+                        result.traffic_light === 'YELLOW' ? 'var(--yellow-caution)' :
+                        'var(--green-safe)'
+                    }}>
+                      {result.traffic_light === 'RED' ? 'Alerta Crítica' : result.traffic_light === 'YELLOW' ? 'Precaución' : 'Aprobado y Seguro'}
+                    </span>
+                    {result.category && (
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>
+                        • {result.category}
+                      </span>
+                    )}
+                  </div>
+                  <h3 style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-main)', marginTop: '4px', marginBottom: 0 }}>
+                    {result.product_name}
+                  </h3>
+                  <div style={{ fontSize: '0.88rem', color: 'var(--emerald-400)', fontWeight: 700, marginTop: '2px' }}>
+                    {result.verdict_title}
+                  </div>
+                </div>
+              </div>
+
+              {/* Opciones Relacionadas encontradas (si buscó una familia como arroz, leche, etc.) */}
+              {hasSearched && searchResults.length > 1 && (
+                <div style={{
+                  background: 'var(--bg-secondary)',
+                  padding: '10px 14px',
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: '1rem',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                    Otras opciones encontradas en el catálogo (Toca para evaluar):
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {searchResults.map((item) => {
+                      const isCurrent = result && result.product_name === item.name;
+                      const dot = item.traffic_light === 'RED' ? '🔴' : item.traffic_light === 'YELLOW' ? '🟡' : '🟢';
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleSelectFoodItem(item)}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 'var(--radius-full)',
+                            fontSize: '0.75rem',
+                            fontWeight: isCurrent ? 800 : 600,
+                            background: isCurrent ? 'var(--emerald-500)' : 'var(--bg-card)',
+                            color: isCurrent ? '#ffffff' : 'var(--text-main)',
+                            border: `1px solid ${isCurrent ? 'var(--emerald-400)' : 'var(--border-color)'}`,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {dot} {item.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Consejo Clínico */}
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.98rem', marginBottom: '1.25rem', lineHeight: 1.6 }}>
+                {result.clinical_advice}
+              </p>
+
+              {/* Factores de Riesgo Hepático */}
+              {result.harmful_items && result.harmful_items.length > 0 && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--red-alert)', fontWeight: 800, marginBottom: '0.6rem', letterSpacing: '0.03em' }}>
+                    ⚠️ Factores de Riesgo Hepático Identificados ({result.harmful_items.length}):
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    {result.harmful_items.map((item, idx) => (
+                      <div key={idx} style={{
+                        background: 'var(--bg-secondary)',
+                        padding: '10px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        borderLeft: `4px solid ${item.risk === 'RED' || item.risk_level === 'RED' ? 'var(--red-alert)' : 'var(--yellow-caution)'}`
+                      }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                          {item.name}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.4 }}>
+                          {item.mechanism}
+                        </div>
+                        {item.alternative && (
+                          <div style={{ fontSize: '0.8rem', color: 'var(--emerald-400)', marginTop: '4px', fontWeight: 600 }}>
+                            💡 Recomendación: {item.alternative}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Mecanismos Protectores */}
+              {result.beneficial_items && result.beneficial_items.length > 0 && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--green-safe)', fontWeight: 800, marginBottom: '0.6rem', letterSpacing: '0.03em' }}>
+                    🛡️ Mecanismo Protector Hepático:
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    {result.beneficial_items.map((item, idx) => (
+                      <div key={idx} style={{
+                        background: 'var(--bg-secondary)',
+                        padding: '10px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        borderLeft: '4px solid var(--green-safe)'
+                      }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                          {item.name}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.4 }}>
+                          {item.mechanism}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Cambio Seguro (Healthy Swap) */}
+              {result.healthy_swap && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
+                  border: '1px solid var(--border-emerald)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1.25rem',
+                  marginTop: '1rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--emerald-400)', fontWeight: 800, fontSize: '0.92rem', marginBottom: '0.35rem' }}>
+                    <span>✨ CAMBIO SEGURO RECOMENDADO (Healthy Swap):</span>
+                  </div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                    {result.healthy_swap.product}
+                  </div>
+                  <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    {result.healthy_swap.reasoning}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* SECCIÓN EXPLORADOR DE CATÁLOGO (CATEGORÍAS Y SEMÁFORO)                   */}
+          {/* ========================================================================= */}
           <div style={{
             background: 'var(--bg-secondary)',
             padding: '1rem',
@@ -449,7 +682,7 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Filtrar Catálogo Clínico por Semáforo:
+                Explorar Catálogo Clínico por Semáforo:
               </span>
               <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                 <button
@@ -550,7 +783,7 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
             {/* Grilla de Alimentos Explorables en 1 Clic */}
             <div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: '0.5rem', fontWeight: 700 }}>
-                Alimentos frecuentes en esta categoría (Toca cualquiera para analizar al instante):
+                Alimentos frecuentes ({selectedCategory}) — Toca cualquiera para analizar al instante:
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {alimentosExplorador.map((item) => {
@@ -591,70 +824,6 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
               </div>
             </div>
           </div>
-
-          {/* Lista de Resultados Encontrados tras Búsqueda */}
-          {hasSearched && searchResults.length > 1 && (
-            <div style={{
-              background: 'var(--bg-card)',
-              padding: '1.25rem',
-              borderRadius: 'var(--radius-lg)',
-              border: '1px solid var(--border-color)',
-              marginBottom: '1.5rem'
-            }}>
-              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 0.85rem 0' }}>
-                📋 Coincidencias encontradas en el catálogo ({searchResults.length}):
-              </h4>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-                gap: '8px'
-              }}>
-                {searchResults.map((item) => {
-                  const badgeColor = item.traffic_light === 'RED' ? '#ef4444' : item.traffic_light === 'YELLOW' ? '#f59e0b' : '#10b981';
-                  const isSelected = result && result.product_name === item.name;
-
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => handleSelectFoodItem(item)}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 'var(--radius-md)',
-                        background: isSelected ? 'var(--emerald-glow)' : 'var(--bg-secondary)',
-                        border: `1px solid ${isSelected ? 'var(--emerald-400)' : 'var(--border-color)'}`,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '8px',
-                        transition: 'all 0.15s ease'
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-main)' }}>
-                          {item.name}
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          {item.category}
-                        </div>
-                      </div>
-                      <span style={{
-                        fontSize: '0.72rem',
-                        fontWeight: 800,
-                        padding: '2px 8px',
-                        borderRadius: 'var(--radius-full)',
-                        background: item.traffic_light === 'RED' ? 'var(--red-bg)' : item.traffic_light === 'YELLOW' ? 'var(--yellow-bg)' : 'var(--green-bg)',
-                        color: badgeColor,
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {item.traffic_light === 'RED' ? '🔴 Alerta' : item.traffic_light === 'YELLOW' ? '🟡 Precaución' : '🟢 Seguro'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -742,164 +911,6 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
             <span>🔬</span>
             <span>{loading ? 'Analizando Etiqueta...' : 'Analizar Ingredientes y Evaluar Seguridad'}</span>
           </button>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TARJETA DE RESULTADO: SEMÁFORO HEPÁTICO & EVALUACIÓN CLÍNICA              */}
-      {/* ========================================================================= */}
-      {result && (
-        <div style={{
-          background: 'var(--bg-card)',
-          borderRadius: 'var(--radius-lg)',
-          border: `2px solid ${
-            result.traffic_light === 'RED' ? 'var(--red-alert)' :
-            result.traffic_light === 'YELLOW' ? 'var(--yellow-caution)' :
-            'var(--green-safe)'
-          }`,
-          padding: '1.5rem',
-          animation: 'fadeIn 0.25s ease',
-          boxShadow: `0 8px 30px ${
-            result.traffic_light === 'RED' ? 'rgba(239, 68, 68, 0.15)' :
-            result.traffic_light === 'YELLOW' ? 'rgba(245, 158, 11, 0.15)' :
-            'rgba(16, 185, 129, 0.15)'
-          }`
-        }}>
-          {/* Header del resultado */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '1rem', flexWrap: 'wrap' }}>
-            <div style={{
-              width: '58px',
-              height: '58px',
-              borderRadius: 'var(--radius-full)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '2rem',
-              background:
-                result.traffic_light === 'RED' ? 'var(--red-bg)' :
-                result.traffic_light === 'YELLOW' ? 'var(--yellow-bg)' :
-                'var(--green-bg)'
-            }}>
-              {result.traffic_light === 'RED' ? '🔴' : result.traffic_light === 'YELLOW' ? '🟡' : '🟢'}
-            </div>
-
-            <div style={{ flex: 1, minWidth: '220px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 900,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  padding: '2px 8px',
-                  borderRadius: 'var(--radius-full)',
-                  background:
-                    result.traffic_light === 'RED' ? 'var(--red-bg)' :
-                    result.traffic_light === 'YELLOW' ? 'var(--yellow-bg)' :
-                    'var(--green-bg)',
-                  color:
-                    result.traffic_light === 'RED' ? 'var(--red-alert)' :
-                    result.traffic_light === 'YELLOW' ? 'var(--yellow-caution)' :
-                    'var(--green-safe)'
-                }}>
-                  {result.traffic_light === 'RED' ? 'Alerta Crítica' : result.traffic_light === 'YELLOW' ? 'Precaución' : 'Aprobado'}
-                </span>
-                {result.category && (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>
-                    • {result.category}
-                  </span>
-                )}
-              </div>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-main)', marginTop: '4px', marginBottom: 0 }}>
-                {result.product_name}
-              </h3>
-              <div style={{ fontSize: '0.85rem', color: 'var(--emerald-400)', fontWeight: 700, marginTop: '2px' }}>
-                {result.verdict_title}
-              </div>
-            </div>
-          </div>
-
-          {/* Consejo Clínico */}
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.25rem', lineHeight: 1.6 }}>
-            {result.clinical_advice}
-          </p>
-
-          {/* Factores de Riesgo Hepático */}
-          {result.harmful_items && result.harmful_items.length > 0 && (
-            <div style={{ marginBottom: '1.25rem' }}>
-              <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--red-alert)', fontWeight: 800, marginBottom: '0.6rem', letterSpacing: '0.03em' }}>
-                ⚠️ Factores de Riesgo Hepático Identificados ({result.harmful_items.length}):
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {result.harmful_items.map((item, idx) => (
-                  <div key={idx} style={{
-                    background: 'var(--bg-secondary)',
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    borderLeft: `4px solid ${item.risk === 'RED' || item.risk_level === 'RED' ? 'var(--red-alert)' : 'var(--yellow-caution)'}`
-                  }}>
-                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                      {item.name}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.4 }}>
-                      {item.mechanism}
-                    </div>
-                    {item.alternative && (
-                      <div style={{ fontSize: '0.8rem', color: 'var(--emerald-400)', marginTop: '4px', fontWeight: 600 }}>
-                        💡 Recomendación: {item.alternative}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Mecanismos Protectores */}
-          {result.beneficial_items && result.beneficial_items.length > 0 && (
-            <div style={{ marginBottom: '1.25rem' }}>
-              <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--green-safe)', fontWeight: 800, marginBottom: '0.6rem', letterSpacing: '0.03em' }}>
-                🛡️ Mecanismo Protector Hepático:
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {result.beneficial_items.map((item, idx) => (
-                  <div key={idx} style={{
-                    background: 'var(--bg-secondary)',
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    borderLeft: '4px solid var(--green-safe)'
-                  }}>
-                    <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-main)' }}>
-                      {item.name}
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.4 }}>
-                      {item.mechanism}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Cambio Seguro (Healthy Swap) */}
-          {result.healthy_swap && (
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
-              border: '1px solid var(--border-emerald)',
-              borderRadius: 'var(--radius-md)',
-              padding: '1.25rem',
-              marginTop: '1rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--emerald-400)', fontWeight: 800, fontSize: '0.92rem', marginBottom: '0.35rem' }}>
-                <span>✨ CAMBIO SEGURO RECOMENDADO (Healthy Swap):</span>
-              </div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                {result.healthy_swap.product}
-              </div>
-              <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                {result.healthy_swap.reasoning}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>
