@@ -63,11 +63,26 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Verificar estado del backend Django
+  // Verificar estado del backend Django (solo en entorno local)
   useEffect(() => {
+    const esLocal = typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+    if (!esLocal) {
+      setBackendStatus('offline');
+      return;
+    }
+
     async function checkBackend() {
       try {
-        const res = await fetch(`${API_BASE_URL}/health/`, { method: 'GET' });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1000);
+        const res = await fetch(`${API_BASE_URL}/health/`, { 
+          method: 'GET',
+          signal: controller.signal 
+        });
+        clearTimeout(timeoutId);
+
         if (res.ok) {
           setBackendStatus('online');
         } else {
@@ -77,6 +92,7 @@ export default function App() {
         setBackendStatus('offline');
       }
     }
+
     checkBackend();
     const interval = setInterval(checkBackend, 15000);
     return () => clearInterval(interval);

@@ -1,23 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   CLINICAL_FOOD_CATALOG, 
+  FOOD_CATEGORIES,
   searchFoodCatalog, 
   classifyFoodSmart 
 } from '../utils/clinicalFoodDatabase';
 
 export default function SemaforoEscaneo({ apiBaseUrl }) {
-  const [productName, setProductName] = useState('');
-  const [inputText, setInputText] = useState('');
+  // Modalidad: 'buscador' (Búsqueda por alimento/plato) vs 'escaner' (Análisis de etiqueta de ingredientes)
+  const [modoActivo, setModoActivo] = useState('buscador');
+
+  // Estados del Buscador de Alimentos
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('TODAS');
+  const [trafficFilter, setTrafficFilter] = useState('ALL'); // 'ALL', 'RED', 'YELLOW', 'GREEN'
+  const [searchResults, setSearchResults] = useState([]);
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // Estados del Escáner de Etiquetas
+  const [scannerProductName, setScannerProductName] = useState('');
+  const [scannerIngredients, setScannerIngredients] = useState('');
+
+  // Estado común
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
-  // Estados del Buscador Inteligente & Autocompletado
+  // Sugerencias reactivas al escribir
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('ALL'); // 'ALL', 'RED', 'YELLOW', 'GREEN'
   const searchContainerRef = useRef(null);
 
-  // Cerrar sugerencias al hacer clic fuera del componente
+  // Cerrar sugerencias al hacer clic fuera
   useEffect(() => {
     function handleClickOutside(event) {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
@@ -28,461 +41,713 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Actualizar sugerencias reactivas cuando el usuario escribe en el input
-  const handleNameChange = (e) => {
+  // Detectar si estamos en un entorno donde el backend Django local es accesible
+  const isLocalHost = typeof window !== 'undefined' && 
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  // Actualizar sugerencias reactivas mientras el usuario tipea
+  const handleSearchInputChange = (e) => {
     const val = e.target.value;
-    setProductName(val);
-    
+    setSearchTerm(val);
+
     if (val.trim().length >= 1) {
-      const matches = searchFoodCatalog(val, activeFilter);
-      setSuggestions(matches.slice(0, 8)); // Top 8 resultados
+      const matches = searchFoodCatalog(val, selectedCategory, trafficFilter);
+      setSuggestions(matches.slice(0, 6));
       setShowSuggestions(true);
     } else {
-      const defaultList = searchFoodCatalog('', activeFilter);
-      setSuggestions(defaultList.slice(0, 8));
+      setSuggestions([]);
       setShowSuggestions(false);
     }
   };
 
-  // Seleccionar un alimento del catálogo y clasificarlo de inmediato
-  const handleSelectFood = (food) => {
-    setProductName(food.name);
-    setInputText(food.ingredients_raw || '');
-    setShowSuggestions(false);
+  // Función principal: BUSCAR Y CLASIFICAR ALIMENTO
+  const ejecutarBusqueda = (termToSearch = null) => {
+    const term = (termToSearch !== null ? termToSearch : searchTerm).trim();
+    if (!term) return;
 
-    // Clasificación inmediata con feedback visual
     setLoading(true);
+    setShowSuggestions(false);
+    setHasSearched(true);
+
+    // 1. Obtener todas las coincidencias del catálogo clínico
+    const catalogMatches = searchFoodCatalog(term, selectedCategory, trafficFilter);
+    setSearchResults(catalogMatches);
+
+    // 2. Realizar la evaluación clínica inmediata del término
+    // (Garantizado: Si está en catálogo devuelve su ficha; si no, el motor heurístico analiza la naturaleza del plato)
     setTimeout(() => {
-      const classified = classifyFoodSmart(food.name, food.ingredients_raw || '');
-      setResult(classified);
+      const clinicalEval = classifyFoodSmart(term, '');
+      setResult(clinicalEval);
       setLoading(false);
-    }, 150);
+    }, 80);
   };
 
-  // Clasificar el alimento (por nombre, por ingredientes o ambos)
-  const ejecutarClasificacion = async () => {
-    const nameClean = productName.trim();
-    const textClean = inputText.trim();
+  // Seleccionar directamente un alimento del catálogo o de los resultados
+  const handleSelectFoodItem = (item) => {
+    setSearchTerm(item.name);
+    setShowSuggestions(false);
+    setLoading(true);
+
+    setTimeout(() => {
+      const clinicalEval = classifyFoodSmart(item.name, item.ingredients_raw || '');
+      setResult(clinicalEval);
+      setLoading(false);
+    }, 60);
+  };
+
+  // Ejecutar análisis de etiqueta cruda de ingredientes
+  const ejecutarAnalisisEtiqueta = async () => {
+    const nameClean = scannerProductName.trim();
+    const textClean = scannerIngredients.trim();
 
     if (!nameClean && !textClean) return;
 
     setLoading(true);
-    setShowSuggestions(false);
 
-    // Intentar clasificar con el backend Django si está disponible
-    try {
-      const response = await fetch(`${apiBaseUrl}/analyze/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ingredients_text: textClean || nameClean,
-          product_name: nameClean || "Alimento Analizado"
-        })
-      });
+    // Si estamos en localhost y hay backend Django disponible, intentar con timeout
+    if (isLocalHost && apiBaseUrl) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1200);
 
-      if (response.ok) {
-        const data = await response.json();
-        setResult(data);
-        setLoading(false);
-        return;
+        const response = await fetch(`${apiBaseUrl}/analyze/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ingredients_text: textClean || nameClean,
+            product_name: nameClean || "Alimento Etiquetado"
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          setResult(data);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Fallback inmediato al clasificador clínico offline
       }
-      throw new Error("Backend offline o error");
-    } catch {
-      // Motor de Clasificación Inteligente Autónomo (Offline-First)
-      const clinicalResult = classifyFoodSmart(nameClean, textClean);
+    }
+
+    // Motor de clasificación autónomo Offline-First
+    setTimeout(() => {
+      const clinicalResult = classifyFoodSmart(nameClean || 'Producto Etiquetado', textClean);
       setResult(clinicalResult);
       setLoading(false);
+    }, 100);
+  };
+
+  // Limpiar buscador
+  const handleLimpiarBuscador = () => {
+    setSearchTerm('');
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setSearchResults([]);
+    setHasSearched(false);
+    setResult(null);
+  };
+
+  // Cambiar categoría y actualizar catálogo visible
+  const handleSelectCategory = (cat) => {
+    setSelectedCategory(cat);
+    if (searchTerm.trim()) {
+      const matches = searchFoodCatalog(searchTerm, cat, trafficFilter);
+      setSearchResults(matches);
     }
   };
 
-  // Filtrar catálogo por semáforo
-  const cambiarFiltroSemaforo = (filtro) => {
-    setActiveFilter(filtro);
-    const updated = searchFoodCatalog(productName, filtro);
-    setSuggestions(updated.slice(0, 8));
+  // Cambiar filtro de semáforo
+  const handleSelectTrafficFilter = (tf) => {
+    setTrafficFilter(tf);
+    if (searchTerm.trim()) {
+      const matches = searchFoodCatalog(searchTerm, selectedCategory, tf);
+      setSearchResults(matches);
+    }
   };
 
-  // Limpiar formulario para nuevo análisis
-  const limpiarFormulario = () => {
-    setProductName('');
-    setInputText('');
-    setResult(null);
-    setShowSuggestions(false);
-  };
-
-  // Alimentos destacados para acceso rápido según el filtro activo
-  const alimentosDestacados = searchFoodCatalog('', activeFilter).slice(0, 8);
+  // Alimentos destacados para explorar por defecto en la categoría activa
+  const alimentosExplorador = searchFoodCatalog(searchTerm, selectedCategory, trafficFilter).slice(0, 12);
 
   return (
-    <div style={{ maxWidth: '860px', margin: '0 auto', padding: '1.5rem 1rem' }}>
+    <div style={{ maxWidth: '880px', margin: '0 auto', padding: '1.5rem 1rem' }}>
       {/* Encabezado del módulo */}
       <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
-          padding: '6px 14px',
+          padding: '6px 16px',
           borderRadius: 'var(--radius-full)',
           background: 'var(--emerald-glow)',
           border: '1px solid var(--border-emerald)',
           color: 'var(--emerald-400)',
           fontSize: '0.85rem',
-          fontWeight: 600,
+          fontWeight: 700,
           marginBottom: '0.75rem'
         }}>
-          <span>🚦 Escáner & Clasificador Hepático Inteligente</span>
+          <span>🚦 Escudo Hepático & Buscador Clínico MASLD</span>
         </div>
-        <h2 style={{ fontSize: '1.85rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--text-main)', margin: 0 }}>
+        <h2 style={{ fontSize: '1.9rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--text-main)', margin: 0 }}>
           Semáforo Hepático de Alimentos
         </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '0.4rem', maxWidth: '640px', margin: '0.4rem auto 0' }}>
-          Busca cualquier alimento por su nombre o analiza la lista de ingredientes para detectar Jarabe de Maíz (JMAF), grasas trans y obtener sustitutos saludables.
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '640px', margin: '0.5rem auto 0' }}>
+          Busca cualquier alimento, plato o bebida para conocer su impacto en la esteatosis hepática (hígado graso) y obtener su sustituto saludable inmediato.
         </p>
       </div>
 
-      {/* Selector de Filtros Rápidos del Catálogo */}
+      {/* Selector de Modalidad: Buscador Universal vs Escáner de Etiquetas */}
       <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '8px',
         background: 'var(--bg-secondary)',
-        padding: '1rem',
+        padding: '6px',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border-color)',
         marginBottom: '1.5rem'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-          <label style={{ fontSize: '0.8rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 }}>
-            Catálogo Clínico Rápido (Toca para seleccionar y clasificar):
-          </label>
-          {/* Píldoras de filtro */}
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => cambiarFiltroSemaforo('ALL')}
-              style={{
-                padding: '3px 10px',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                border: '1px solid var(--border-color)',
-                background: activeFilter === 'ALL' ? 'var(--emerald-500)' : 'var(--bg-card)',
-                color: activeFilter === 'ALL' ? '#ffffff' : 'var(--text-muted)',
-                cursor: 'pointer'
-              }}
-            >
-              Todos ({CLINICAL_FOOD_CATALOG.length})
-            </button>
-            <button
-              onClick={() => cambiarFiltroSemaforo('RED')}
-              style={{
-                padding: '3px 10px',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                background: activeFilter === 'RED' ? 'var(--red-alert)' : 'rgba(239, 68, 68, 0.1)',
-                color: activeFilter === 'RED' ? '#ffffff' : 'var(--red-alert)',
-                cursor: 'pointer'
-              }}
-            >
-              🔴 Alerta JMAF
-            </button>
-            <button
-              onClick={() => cambiarFiltroSemaforo('YELLOW')}
-              style={{
-                padding: '3px 10px',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                border: '1px solid rgba(245, 158, 11, 0.4)',
-                background: activeFilter === 'YELLOW' ? 'var(--yellow-caution)' : 'rgba(245, 158, 11, 0.1)',
-                color: activeFilter === 'YELLOW' ? '#040406' : 'var(--yellow-caution)',
-                cursor: 'pointer'
-              }}
-            >
-              🟡 Precaución
-            </button>
-            <button
-              onClick={() => cambiarFiltroSemaforo('GREEN')}
-              style={{
-                padding: '3px 10px',
-                borderRadius: 'var(--radius-full)',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                border: '1px solid rgba(16, 185, 129, 0.4)',
-                background: activeFilter === 'GREEN' ? 'var(--green-safe)' : 'rgba(16, 185, 129, 0.1)',
-                color: activeFilter === 'GREEN' ? '#ffffff' : 'var(--emerald-400)',
-                cursor: 'pointer'
-              }}
-            >
-              🟢 Protectores
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => setModoActivo('buscador')}
+          style={{
+            padding: '10px 14px',
+            borderRadius: 'var(--radius-md)',
+            fontWeight: 800,
+            fontSize: '0.92rem',
+            border: 'none',
+            background: modoActivo === 'buscador' ? 'var(--emerald-500)' : 'transparent',
+            color: modoActivo === 'buscador' ? '#ffffff' : 'var(--text-muted)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+        >
+          <span>🔍</span>
+          <span>Buscador Universal de Alimentos</span>
+        </button>
 
-        {/* Chips de alimentos del catálogo */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-          {alimentosDestacados.map((item) => {
-            const badgeColor = item.traffic_light === 'RED' ? '#ef4444' : item.traffic_light === 'YELLOW' ? '#f59e0b' : '#10b981';
-            const isSelected = productName === item.name;
-
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => handleSelectFood(item)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '7px 12px',
-                  borderRadius: 'var(--radius-full)',
-                  fontSize: '0.82rem',
-                  fontWeight: isSelected ? 800 : 600,
-                  background: isSelected ? 'var(--emerald-glow)' : 'var(--bg-card)',
-                  color: isSelected ? 'var(--emerald-400)' : 'var(--text-main)',
-                  border: `1px solid ${isSelected ? 'var(--emerald-400)' : 'var(--border-color)'}`,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <span style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: badgeColor,
-                  display: 'inline-block'
-                }} />
-                <span>{item.name}</span>
-              </button>
-            );
-          })}
-        </div>
+        <button
+          type="button"
+          onClick={() => setModoActivo('escaner')}
+          style={{
+            padding: '10px 14px',
+            borderRadius: 'var(--radius-md)',
+            fontWeight: 800,
+            fontSize: '0.92rem',
+            border: 'none',
+            background: modoActivo === 'escaner' ? 'var(--emerald-500)' : 'transparent',
+            color: modoActivo === 'escaner' ? '#ffffff' : 'var(--text-muted)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+        >
+          <span>🔬</span>
+          <span>Escáner de Ingredientes (Etiquetas)</span>
+        </button>
       </div>
 
-      {/* Formulario de Búsqueda, Ingreso y Clasificación */}
-      <div style={{
-        background: 'var(--bg-card)',
-        padding: '1.5rem',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--border-color)',
-        boxShadow: '0 8px 28px rgba(0,0,0,0.15)',
-        marginBottom: '1.5rem',
-        position: 'relative'
-      }}>
-        {/* Campo de Nombre con Buscador en Tiempo Real y Dropdown */}
-        <div ref={searchContainerRef} style={{ marginBottom: '1.25rem', position: 'relative' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-            <label htmlFor="prod-name-input" style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              1. Escribe o busca el nombre del alimento:
+      {/* ========================================================================= */}
+      {/* MODALIDAD 1: BUSCADOR UNIVERSAL DE ALIMENTOS                             */}
+      {/* ========================================================================= */}
+      {modoActivo === 'buscador' && (
+        <div>
+          {/* Barra de Búsqueda Principal con Botón de Acción Directo */}
+          <div style={{
+            background: 'var(--bg-card)',
+            padding: '1.25rem',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+            marginBottom: '1.5rem'
+          }}>
+            <label htmlFor="search-input-field" style={{
+              display: 'block',
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              color: 'var(--text-main)',
+              marginBottom: '0.6rem'
+            }}>
+              Ingresa el nombre de cualquier alimento, plato o bebida:
             </label>
-            {productName && (
-              <button
-                type="button"
-                onClick={limpiarFormulario}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-dim)',
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
-              >
-                Limpiar campos
-              </button>
-            )}
+
+            <div ref={searchContainerRef} style={{ position: 'relative' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 280px', position: 'relative' }}>
+                  <input
+                    id="search-input-field"
+                    type="text"
+                    value={searchTerm}
+                    onChange={handleSearchInputChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        ejecutarBusqueda();
+                      }
+                    }}
+                    onFocus={() => {
+                      if (suggestions.length > 0) setShowSuggestions(true);
+                    }}
+                    placeholder="Ej: Manzana, Arroz blanco, Pizza, Salmón, Kétchup, Vino, Lentejas, Leche..."
+                    style={{
+                      width: '100%',
+                      padding: '13px 40px 13px 16px',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-secondary)',
+                      color: 'var(--text-main)',
+                      fontSize: '1rem',
+                      outline: 'none',
+                      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={handleLimpiarBuscador}
+                      style={{
+                        position: 'absolute',
+                        right: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-dim)',
+                        fontSize: '1.1rem',
+                        cursor: 'pointer'
+                      }}
+                      title="Limpiar búsqueda"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => ejecutarBusqueda()}
+                  disabled={loading || !searchTerm.trim()}
+                  style={{
+                    padding: '13px 24px',
+                    borderRadius: 'var(--radius-md)',
+                    background: !searchTerm.trim() 
+                      ? 'var(--bg-secondary)' 
+                      : 'linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%)',
+                    color: !searchTerm.trim() ? 'var(--text-dim)' : '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    border: 'none',
+                    cursor: !searchTerm.trim() ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: !searchTerm.trim() ? 'none' : '0 4px 14px var(--emerald-glow)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span>🔍</span>
+                  <span>{loading ? 'Buscando...' : 'Buscar Alimento'}</span>
+                </button>
+              </div>
+
+              {/* Menú flotante de autocompletado en tiempo real */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  zIndex: 50,
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-emerald)',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
+                  marginTop: '6px',
+                  maxHeight: '280px',
+                  overflowY: 'auto'
+                }}>
+                  <div style={{
+                    padding: '6px 12px',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    color: 'var(--emerald-400)',
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    borderBottom: '1px solid var(--border-color)',
+                    textTransform: 'uppercase'
+                  }}>
+                    Coincidencias encontradas ({suggestions.length}) — Toca para clasificar:
+                  </div>
+                  {suggestions.map((item) => {
+                    const badgeColor = item.traffic_light === 'RED' ? '#ef4444' : item.traffic_light === 'YELLOW' ? '#f59e0b' : '#10b981';
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleSelectFoodItem(item)}
+                        style={{
+                          padding: '10px 14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          borderBottom: '1px solid var(--border-color)',
+                          cursor: 'pointer',
+                          transition: 'background 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-card)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{
+                            width: '9px',
+                            height: '9px',
+                            borderRadius: '50%',
+                            background: badgeColor,
+                            boxShadow: `0 0 6px ${badgeColor}`
+                          }} />
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)' }}>
+                              {item.name}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              {item.category}
+                            </div>
+                          </div>
+                        </div>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 800,
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-full)',
+                          background: item.traffic_light === 'RED' ? 'var(--red-bg)' : item.traffic_light === 'YELLOW' ? 'var(--yellow-bg)' : 'var(--green-bg)',
+                          color: badgeColor
+                        }}>
+                          {item.traffic_light === 'RED' ? 'Alerta' : item.traffic_light === 'YELLOW' ? 'Precaución' : 'Seguro'}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div style={{ position: 'relative' }}>
+          {/* Filtros de Categorías y Semáforo */}
+          <div style={{
+            background: 'var(--bg-secondary)',
+            padding: '1rem',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-color)',
+            marginBottom: '1.5rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Filtrar Catálogo Clínico por Semáforo:
+              </span>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => handleSelectTrafficFilter('ALL')}
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    border: '1px solid var(--border-color)',
+                    background: trafficFilter === 'ALL' ? 'var(--emerald-500)' : 'var(--bg-card)',
+                    color: trafficFilter === 'ALL' ? '#ffffff' : 'var(--text-muted)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectTrafficFilter('RED')}
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    background: trafficFilter === 'RED' ? 'var(--red-alert)' : 'rgba(239, 68, 68, 0.1)',
+                    color: trafficFilter === 'RED' ? '#ffffff' : 'var(--red-alert)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔴 Alerta Roja
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectTrafficFilter('YELLOW')}
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    border: '1px solid rgba(245, 158, 11, 0.4)',
+                    background: trafficFilter === 'YELLOW' ? 'var(--yellow-caution)' : 'rgba(245, 158, 11, 0.1)',
+                    color: trafficFilter === 'YELLOW' ? '#040406' : 'var(--yellow-caution)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🟡 Precaución
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectTrafficFilter('GREEN')}
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    background: trafficFilter === 'GREEN' ? 'var(--green-safe)' : 'rgba(16, 185, 129, 0.1)',
+                    color: trafficFilter === 'GREEN' ? '#ffffff' : 'var(--emerald-400)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🟢 Protectores
+                </button>
+              </div>
+            </div>
+
+            {/* Píldoras de Categorías */}
+            <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px', marginBottom: '0.75rem' }}>
+              {FOOD_CATEGORIES.map((cat) => {
+                const isCatActive = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => handleSelectCategory(cat)}
+                    style={{
+                      whiteSpace: 'nowrap',
+                      padding: '5px 12px',
+                      borderRadius: 'var(--radius-full)',
+                      fontSize: '0.76rem',
+                      fontWeight: isCatActive ? 800 : 600,
+                      background: isCatActive ? 'var(--emerald-glow)' : 'var(--bg-card)',
+                      color: isCatActive ? 'var(--emerald-400)' : 'var(--text-muted)',
+                      border: `1px solid ${isCatActive ? 'var(--emerald-400)' : 'var(--border-color)'}`,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Grilla de Alimentos Explorables en 1 Clic */}
+            <div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: '0.5rem', fontWeight: 700 }}>
+                Alimentos frecuentes en esta categoría (Toca cualquiera para analizar al instante):
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {alimentosExplorador.map((item) => {
+                  const badgeColor = item.traffic_light === 'RED' ? '#ef4444' : item.traffic_light === 'YELLOW' ? '#f59e0b' : '#10b981';
+                  const isItemActive = result && result.product_name === item.name;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleSelectFoodItem(item)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.8rem',
+                        fontWeight: isItemActive ? 800 : 600,
+                        background: isItemActive ? 'var(--emerald-glow)' : 'var(--bg-card)',
+                        color: isItemActive ? 'var(--emerald-400)' : 'var(--text-main)',
+                        border: `1px solid ${isItemActive ? 'var(--emerald-400)' : 'var(--border-color)'}`,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: badgeColor,
+                        display: 'inline-block'
+                      }} />
+                      <span>{item.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Lista de Resultados Encontrados tras Búsqueda */}
+          {hasSearched && searchResults.length > 1 && (
+            <div style={{
+              background: 'var(--bg-card)',
+              padding: '1.25rem',
+              borderRadius: 'var(--radius-lg)',
+              border: '1px solid var(--border-color)',
+              marginBottom: '1.5rem'
+            }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 0.85rem 0' }}>
+                📋 Coincidencias encontradas en el catálogo ({searchResults.length}):
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                gap: '8px'
+              }}>
+                {searchResults.map((item) => {
+                  const badgeColor = item.traffic_light === 'RED' ? '#ef4444' : item.traffic_light === 'YELLOW' ? '#f59e0b' : '#10b981';
+                  const isSelected = result && result.product_name === item.name;
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleSelectFoodItem(item)}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-md)',
+                        background: isSelected ? 'var(--emerald-glow)' : 'var(--bg-secondary)',
+                        border: `1px solid ${isSelected ? 'var(--emerald-400)' : 'var(--border-color)'}`,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--text-main)' }}>
+                          {item.name}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          {item.category}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: 'var(--radius-full)',
+                        background: item.traffic_light === 'RED' ? 'var(--red-bg)' : item.traffic_light === 'YELLOW' ? 'var(--yellow-bg)' : 'var(--green-bg)',
+                        color: badgeColor,
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {item.traffic_light === 'RED' ? '🔴 Alerta' : item.traffic_light === 'YELLOW' ? '🟡 Precaución' : '🟢 Seguro'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODALIDAD 2: ESCÁNER DE INGREDIENTES (ETIQUETAS)                          */}
+      {/* ========================================================================= */}
+      {modoActivo === 'escaner' && (
+        <div style={{
+          background: 'var(--bg-card)',
+          padding: '1.5rem',
+          borderRadius: 'var(--radius-lg)',
+          border: '1px solid var(--border-color)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+          marginBottom: '1.5rem'
+        }}>
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label htmlFor="scanner-product-name" style={{ display: 'block', fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.4rem' }}>
+              1. Nombre del producto o marca (Opcional):
+            </label>
             <input
-              id="prod-name-input"
+              id="scanner-product-name"
               type="text"
-              autoComplete="off"
-              value={productName}
-              onChange={handleNameChange}
-              onFocus={() => {
-                if (suggestions.length > 0) setShowSuggestions(true);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  ejecutarClasificacion();
-                }
-              }}
-              placeholder="Ej: Kétchup, Coca Cola, Galletas, Avena, Yogur, Pan, Salmón..."
+              value={scannerProductName}
+              onChange={(e) => setScannerProductName(e.target.value)}
+              placeholder="Ej: Galletas dulces, Cereal de desayuno, Salsa comercial..."
               style={{
                 width: '100%',
-                padding: '12px 42px 12px 16px',
+                padding: '12px 14px',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-color)',
                 background: 'var(--bg-secondary)',
                 color: 'var(--text-main)',
-                fontSize: '1rem',
-                outline: 'none',
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                fontSize: '0.95rem',
+                outline: 'none'
               }}
             />
-            <span style={{
-              position: 'absolute',
-              right: '14px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: '1.1rem',
-              color: 'var(--text-dim)',
-              pointerEvents: 'none'
-            }}>
-              🔍
-            </span>
           </div>
 
-          {/* Menú Desplegable de Sugerencias y Autocompletado */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              zIndex: 100,
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-emerald)',
-              borderRadius: 'var(--radius-md)',
-              boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
-              marginTop: '6px',
-              maxHeight: '320px',
-              overflowY: 'auto'
-            }}>
-              <div style={{
-                padding: '6px 12px',
-                fontSize: '0.72rem',
-                fontWeight: 800,
-                color: 'var(--emerald-400)',
-                background: 'rgba(16, 185, 129, 0.08)',
-                borderBottom: '1px solid var(--border-color)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em'
-              }}>
-                Alimentos encontrados en el catálogo clínico ({suggestions.length}) — Toca uno para seleccionar:
-              </div>
-
-              {suggestions.map((food) => {
-                const dotColor = food.traffic_light === 'RED' ? 'var(--red-alert)' : food.traffic_light === 'YELLOW' ? 'var(--yellow-caution)' : 'var(--green-safe)';
-                const badgeLabel = food.traffic_light === 'RED' ? 'Alerta' : food.traffic_light === 'YELLOW' ? 'Precaución' : 'Seguro';
-
-                return (
-                  <div
-                    key={food.id}
-                    onClick={() => handleSelectFood(food)}
-                    style={{
-                      padding: '10px 14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      borderBottom: '1px solid var(--border-color)',
-                      cursor: 'pointer',
-                      transition: 'background 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-card)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{
-                        width: '10px',
-                        height: '10px',
-                        borderRadius: '50%',
-                        background: dotColor,
-                        boxShadow: `0 0 8px ${dotColor}`
-                      }} />
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main)' }}>
-                          {food.name}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {food.category} • {food.brand}
-                        </div>
-                      </div>
-                    </div>
-
-                    <span style={{
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      padding: '3px 8px',
-                      borderRadius: 'var(--radius-full)',
-                      background: food.traffic_light === 'RED' ? 'var(--red-bg)' : food.traffic_light === 'YELLOW' ? 'var(--yellow-bg)' : 'var(--green-bg)',
-                      color: dotColor
-                    }}>
-                      {badgeLabel}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Campo de Ingredientes (Ahora flexible y opcional si se ingresó el nombre) */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-            <label htmlFor="ingredients-text-input" style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>
-              2. Lista de ingredientes:
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label htmlFor="scanner-ingredients-text" style={{ display: 'block', fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.4rem' }}>
+              2. Pega la lista de ingredientes de la etiqueta:
             </label>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
-              (Opcional si buscas por nombre, o pega la etiqueta de un paquete)
-            </span>
+            <textarea
+              id="scanner-ingredients-text"
+              rows="4"
+              value={scannerIngredients}
+              onChange={(e) => setScannerIngredients(e.target.value)}
+              placeholder="Ej: Harina de trigo, azúcar, jarabe de maíz de alta fructosa (JMAF), grasa vegetal parcialmente hidrogenada, maltodextrina..."
+              style={{
+                width: '100%',
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-main)',
+                fontSize: '0.9rem',
+                resize: 'vertical',
+                outline: 'none'
+              }}
+            />
           </div>
 
-          <textarea
-            id="ingredients-text-input"
-            rows="3"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Ej: Harina de trigo, azúcar, jarabe de maíz de alta fructosa (JMAF), aceite de palma parcialmente hidrogenado..."
+          <button
+            type="button"
+            onClick={ejecutarAnalisisEtiqueta}
+            disabled={loading || (!scannerProductName.trim() && !scannerIngredients.trim())}
             style={{
               width: '100%',
-              padding: '12px 14px',
+              padding: '14px',
               borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-main)',
-              fontSize: '0.9rem',
-              resize: 'vertical',
-              outline: 'none',
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+              background: (!scannerProductName.trim() && !scannerIngredients.trim())
+                ? 'var(--bg-secondary)'
+                : 'linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%)',
+              color: (!scannerProductName.trim() && !scannerIngredients.trim()) ? 'var(--text-dim)' : '#ffffff',
+              fontWeight: 800,
+              fontSize: '1.05rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              border: 'none',
+              cursor: (!scannerProductName.trim() && !scannerIngredients.trim()) ? 'not-allowed' : 'pointer'
             }}
-          />
+          >
+            <span>🔬</span>
+            <span>{loading ? 'Analizando Etiqueta...' : 'Analizar Ingredientes y Evaluar Seguridad'}</span>
+          </button>
         </div>
+      )}
 
-        {/* Botón de Clasificación Hepática (Habilitado con Nombre o Ingredientes) */}
-        <button
-          type="button"
-          onClick={ejecutarClasificacion}
-          disabled={loading || (!productName.trim() && !inputText.trim())}
-          style={{
-            width: '100%',
-            padding: '14px',
-            borderRadius: 'var(--radius-md)',
-            background: (!productName.trim() && !inputText.trim())
-              ? 'var(--bg-secondary)'
-              : 'linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%)',
-            color: (!productName.trim() && !inputText.trim()) ? 'var(--text-dim)' : '#ffffff',
-            fontWeight: 800,
-            fontSize: '1.05rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            boxShadow: (!productName.trim() && !inputText.trim()) ? 'none' : '0 4px 16px var(--emerald-glow)',
-            cursor: (!productName.trim() && !inputText.trim()) ? 'not-allowed' : 'pointer',
-            border: 'none',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          {loading ? (
-            <span>Analizando y Clasificando Alimento...</span>
-          ) : (
-            <span>🔍 Evaluar y Clasificar Seguridad Hepática</span>
-          )}
-        </button>
-      </div>
-
-      {/* Tarjeta de Resultados del Semáforo Hepático */}
+      {/* ========================================================================= */}
+      {/* TARJETA DE RESULTADO: SEMÁFORO HEPÁTICO & EVALUACIÓN CLÍNICA              */}
+      {/* ========================================================================= */}
       {result && (
         <div style={{
           background: 'var(--bg-card)',
@@ -493,14 +758,14 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
             'var(--green-safe)'
           }`,
           padding: '1.5rem',
-          animation: 'fadeIn 0.3s ease',
+          animation: 'fadeIn 0.25s ease',
           boxShadow: `0 8px 30px ${
             result.traffic_light === 'RED' ? 'rgba(239, 68, 68, 0.15)' :
             result.traffic_light === 'YELLOW' ? 'rgba(245, 158, 11, 0.15)' :
             'rgba(16, 185, 129, 0.15)'
           }`
         }}>
-          {/* Header del resultado con Semáforo */}
+          {/* Header del resultado */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '1rem', flexWrap: 'wrap' }}>
             <div style={{
               width: '58px',
@@ -513,12 +778,7 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
               background:
                 result.traffic_light === 'RED' ? 'var(--red-bg)' :
                 result.traffic_light === 'YELLOW' ? 'var(--yellow-bg)' :
-                'var(--green-bg)',
-              boxShadow: `0 4px 14px ${
-                result.traffic_light === 'RED' ? 'rgba(239, 68, 68, 0.3)' :
-                result.traffic_light === 'YELLOW' ? 'rgba(245, 158, 11, 0.3)' :
-                'rgba(16, 185, 129, 0.3)'
-              }`
+                'var(--green-bg)'
             }}>
               {result.traffic_light === 'RED' ? '🔴' : result.traffic_light === 'YELLOW' ? '🟡' : '🟢'}
             </div>
@@ -549,7 +809,7 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
                   </span>
                 )}
               </div>
-              <h3 style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-main)', marginTop: '4px', marginBottom: 0 }}>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--text-main)', marginTop: '4px', marginBottom: 0 }}>
                 {result.product_name}
               </h3>
               <div style={{ fontSize: '0.85rem', color: 'var(--emerald-400)', fontWeight: 700, marginTop: '2px' }}>
@@ -558,11 +818,12 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
             </div>
           </div>
 
+          {/* Consejo Clínico */}
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.25rem', lineHeight: 1.6 }}>
             {result.clinical_advice}
           </p>
 
-          {/* Ingredientes Peligrosos Detectados */}
+          {/* Factores de Riesgo Hepático */}
           {result.harmful_items && result.harmful_items.length > 0 && (
             <div style={{ marginBottom: '1.25rem' }}>
               <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--red-alert)', fontWeight: 800, marginBottom: '0.6rem', letterSpacing: '0.03em' }}>
@@ -593,7 +854,7 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
             </div>
           )}
 
-          {/* Ingredientes Protectores */}
+          {/* Mecanismos Protectores */}
           {result.beneficial_items && result.beneficial_items.length > 0 && (
             <div style={{ marginBottom: '1.25rem' }}>
               <h4 style={{ fontSize: '0.85rem', textTransform: 'uppercase', color: 'var(--green-safe)', fontWeight: 800, marginBottom: '0.6rem', letterSpacing: '0.03em' }}>
@@ -619,7 +880,7 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
             </div>
           )}
 
-          {/* Tarjeta de Cambio Seguro (Healthy Swap) */}
+          {/* Cambio Seguro (Healthy Swap) */}
           {result.healthy_swap && (
             <div style={{
               background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
@@ -628,7 +889,7 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
               padding: '1.25rem',
               marginTop: '1rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--emerald-400)', fontWeight: 800, fontSize: '0.95rem', marginBottom: '0.4rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--emerald-400)', fontWeight: 800, fontSize: '0.92rem', marginBottom: '0.35rem' }}>
                 <span>✨ CAMBIO SEGURO RECOMENDADO (Healthy Swap):</span>
               </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '0.25rem' }}>

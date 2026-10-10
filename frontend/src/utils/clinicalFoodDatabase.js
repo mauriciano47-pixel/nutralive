@@ -2,435 +2,892 @@
  * NutraLive - Base de Datos Canónica de Alimentos Clínicos & Filtro Hepático MASLD
  * Propiedad exclusiva de Mauricio Uribe Maldonado
  * 
- * Permite autocompletar, seleccionar y clasificar alimentos por nombre,
- * analizando inductores de Lipogénesis de Novo (JMAF/Fructosa), grasas trans,
- * carga glucémica y proponiendo el "Cambio Seguro" (Healthy Swap).
+ * Catálogo exhaustivo de alimentos con categorización clínica para Esteatosis Hepática / MASLD.
+ * Incluye motor heurístico universal para clasificar cualquier alimento o plato escrito por el usuario.
  */
 
+export const FOOD_CATEGORIES = [
+  'TODAS',
+  'FRUTAS',
+  'VERDURAS',
+  'LEGUMBRES',
+  'CEREALES Y TUBÉRCULOS',
+  'PESCADOS Y MARISCOS',
+  'CARNES Y HUEVOS',
+  'LÁCTEOS Y DERIVADOS',
+  'GRASAS Y FRUTOS SECOS',
+  'BEBIDAS E INFUSIONES',
+  'DULCES, SALSAS Y SNACKS',
+  'COMIDAS RÁPIDAS Y PLATOS'
+];
+
 export const CLINICAL_FOOD_CATALOG = [
-  // ==========================================
-  // 🔴 ALERTA HEPÁTICA (ROJO) - PROHIBIDOS EN MASLD
-  // ==========================================
+  // =========================================================================
+  // 🔴 1. BEBIDAS, JUGOS Y ALCOHOL (ALERTA ROJA)
+  // =========================================================================
   {
-    id: 'ketchup-comercial',
+    id: 'bebida-cola-regular',
+    name: 'Bebida / Refresco Cola Regular',
+    brand: 'Refrescos Masivos (Coca Cola, Pepsi, etc.)',
+    category: 'BEBIDAS E INFUSIONES',
+    traffic_light: 'RED',
+    keywords: ['coca', 'cola', 'pepsi', 'gaseosa', 'refresco', 'soda', 'bebida azucarada'],
+    ingredients_raw: 'Agua carbonatada, jarabe de maíz de alta fructosa (JMAF) o azúcar de caña, colorante caramelo IV, ácido fosfórico, cafeína.',
+    harmful_items: [
+      { name: 'Jarabe de Maíz de Alta Fructosa (JMAF / HFCS-55)', risk: 'RED', mechanism: 'El 100% de la fructosa libre viaja al hígado; sobrecarga la fructoquinasa y genera lipogénesis de novo inmediata.' },
+      { name: 'Colorante Caramelo IV', risk: 'YELLOW', mechanism: 'Promueve productos finales de glicación avanzada (AGEs) y estrés oxidativo hepático.' }
+    ],
+    clinical_advice: 'Una lata de 350ml contiene ~39g de azúcares libres. Es el inductor dietético número 1 de esteatosis hepática pediátrica y esteatohepatitis.',
+    healthy_swap: {
+      product: 'Agua Gasificada Natural con Rodajas de Limón o Menta Fresca',
+      reasoning: 'Sensación burbujeante idéntica sin una sola molécula de fructosa líquida ni colorantes hepatotóxicos.'
+    }
+  },
+  {
+    id: 'nectar-jugo-en-caja',
+    name: "Néctar o Jugo en Caja '100% Fruta' / Infantil",
+    brand: 'Línea de Jugos Infantiles (Watts, Andina, etc.)',
+    category: 'BEBIDAS E INFUSIONES',
+    traffic_light: 'RED',
+    keywords: ['jugo', 'nectar', 'jugo en caja', 'concentrado de fruta', 'jugo de manzana', 'jugo de naranja envasado'],
+    ingredients_raw: 'Agua, concentrado de fruta reconstituido (manzana/uva), jarabe de glucosa-fructosa, ácido cítrico, saborizantes, sucralosa.',
+    harmful_items: [
+      { name: 'Concentrado de Fruta Reconstituido (Fructosa Desnuda)', risk: 'RED', mechanism: 'Al eliminar la fibra celular vegetal, la fructosa se absorbe a velocidad crítica en el sistema portal.' }
+    ],
+    clinical_advice: 'El hígado no distingue entre fructosa de concentrado de manzana o jarabe de maíz. Causa el mismo pico esteatógeno hepático.',
+    healthy_swap: {
+      product: 'Fruta Entera con Cáscara (Manzana Verde o Pera) + Vaso de Agua Pura',
+      reasoning: 'La matriz intacta de pectina y fibra retiene el azúcar y nutre las bacterias protectoras del eje intestino-hígado.'
+    }
+  },
+  {
+    id: 'jugo-naranja-exprimido',
+    name: 'Jugo de Naranja Natural Exprimido (Sin Fibra)',
+    brand: 'Preparación Casera / Cafeterías',
+    category: 'BEBIDAS E INFUSIONES',
+    traffic_light: 'RED',
+    keywords: ['jugo de naranja', 'zumo de naranja', 'naranja exprimida', 'jugo exprimido', 'zumo natural'],
+    ingredients_raw: 'Jugo exprimido de 3 a 4 naranjas colado sin pulpa.',
+    harmful_items: [
+      { name: 'Sobrecarga de Fructosa Líquida Rápida (24-28g)', risk: 'RED', mechanism: 'Exprimir descarta la fibra y concentra el azúcar de 4 frutas en 1 vaso bebido en 2 minutos.' }
+    ],
+    clinical_advice: 'Aunque sea 100% natural, carece del freno fisiológico de la fibra. Provoca saturación esteatósica en el hepatocito.',
+    healthy_swap: {
+      product: 'Naranja Entera en Gajos con su Hollejo y Fibra Blanca',
+      reasoning: 'Requiere masticación, ralentiza el vaciado gástrico y reduce en 80% la velocidad de llegada de fructosa al hígado.'
+    }
+  },
+  {
+    id: 'cerveza-tradicional',
+    name: 'Cerveza Tradicional (Con Alcohol)',
+    brand: 'Cervecerías Comerciales',
+    category: 'BEBIDAS E INFUSIONES',
+    traffic_light: 'RED',
+    keywords: ['cerveza', 'birra', 'lager', 'pilsen', 'ipa', 'cerveza rubia', 'cerveza negra'],
+    ingredients_raw: 'Agua, malta de cebada, lúpulo, levadura cervecera, alcohol etílico (4.5% - 6.5% ABV).',
+    harmful_items: [
+      { name: 'Etanol / Alcohol Etílico', risk: 'RED', mechanism: 'Tóxico celular hepático directo. Se degrada a acetaldehído y bloquea la beta-oxidación de ácidos grasos.' },
+      { name: 'Maltosa y Carbohidratos Fermentables', risk: 'RED', mechanism: 'Alto índice glucémico sumado al efecto sinérgico tóxico del etanol sobre las transaminasas.' }
+    ],
+    clinical_advice: 'En personas con hígado graso (MASLD), cualquier consumo de alcohol acelera drásticamente la transición hacia esteatohepatitis y fibrosis.',
+    healthy_swap: {
+      product: 'Agua Tónica Sin Azúcar con Rodaja de Pepino o Té Helado de Hibisco',
+      reasoning: 'Refrescante, ligeramente amarga, 0% alcohol y rica en polifenoles protectores.'
+    }
+  },
+  {
+    id: 'vino-tinto-blanco',
+    name: 'Vino Tinto o Blanco',
+    brand: 'Viñas y Bodegas',
+    category: 'BEBIDAS E INFUSIONES',
+    traffic_light: 'RED',
+    keywords: ['vino', 'vino tinto', 'vino blanco', 'cabernet', 'merlot', 'carmenere', 'sauvignon'],
+    ingredients_raw: 'Uvas fermentadas, sulfitos, alcohol etílico (12% - 14.5% ABV).',
+    harmful_items: [
+      { name: 'Carga de Etanol Concentrado', risk: 'RED', mechanism: 'Metabolismo dependiente de CYP2E1 que dispara especies reactivas de oxígeno (ROS) hepáticas.' }
+    ],
+    clinical_advice: 'El supuesto beneficio de los polifenoles no compensa el daño citotóxico del alcohol en un hígado con esteatosis ya diagnosticada.',
+    healthy_swap: {
+      product: 'Infusión Fría de Frutos Rojos y Arándanos Silvestres',
+      reasoning: 'Concentración masiva de antocianinas y resveratrol sin un solo gramo de etanol.'
+    }
+  },
+  {
+    id: 'licores-destilados',
+    name: 'Destilados y Licores Fuertes (Pisco, Ron, Whisky, Vodka)',
+    brand: 'Destilerías',
+    category: 'BEBIDAS E INFUSIONES',
+    traffic_light: 'RED',
+    keywords: ['pisco', 'ron', 'whisky', 'vodka', 'tequila', 'gin', 'licor', 'trago', 'piscola'],
+    ingredients_raw: 'Alcohol destilado (35% - 45% ABV), agua desmineralizada, conglutinantes.',
+    harmful_items: [
+      { name: 'Etanol de Alta Graduación', risk: 'RED', mechanism: 'Necrosis y balonamiento hepatocitario inmediato. Multiplica el riesgo de progresión a cirrosis.' }
+    ],
+    clinical_advice: 'Contraindicación médica absoluta en esteatosis hepática metabólica.',
+    healthy_swap: {
+      product: 'Kombucha Artesanal Sin Azúcar Residual o Agua Mineral con Limón',
+      reasoning: 'Bebidas botánicas vivas sin toxicidad mitocondrial.'
+    }
+  },
+  {
+    id: 'bebida-energetica',
+    name: 'Bebida Energética Azucarada',
+    brand: 'Monster, Red Bull, etc.',
+    category: 'BEBIDAS E INFUSIONES',
+    traffic_light: 'RED',
+    keywords: ['energetica', 'monster', 'red bull', 'bebida energizante', 'score'],
+    ingredients_raw: 'Agua carbonatada, sacarosa, glucosa, taurina, cafeína, inositol, vitaminas B, colorantes.',
+    harmful_items: [
+      { name: 'Bombardeo Glucosa + Fructosa Líquida', risk: 'RED', mechanism: 'Carga masiva que dispara insulina e inhibe la lipólisis en menos de 10 minutos.' }
+    ],
+    clinical_advice: 'Aporta hasta 54g de azúcares por lata. Crítico en adolescentes con sospecha o diagnóstico de hígado graso.',
+    healthy_swap: {
+      product: 'Café Negro de Grano o Té Matcha Japonés con Hielo',
+      reasoning: 'Cafeína pura y ácido clorogénico que estimulan la autofagia hepática sin azúcares.'
+    }
+  },
+
+  // =========================================================================
+  // 🟢 2. BEBIDAS PROTECTORAS (VERDES)
+  // =========================================================================
+  {
+    id: 'agua-pura-mineral',
+    name: 'Agua Pura / Mineral Sin Gas o Con Gas',
+    brand: 'Agua Natural',
+    category: 'BEBIDAS E INFUSIONES',
+    traffic_light: 'GREEN',
+    keywords: ['agua', 'agua mineral', 'agua pura', 'agua con gas', 'agua sin gas', 'h2o'],
+    ingredients_raw: 'Agua 100% pura, minerales traza (calcio, magnesio, bicarbonato).',
+    harmful_items: [],
+    clinical_advice: 'Es el solvente metabólico primario. Una hidratación óptima (30-35 ml/kg) reduce la viscosidad biliar y apoya la detoxificación hepatocitaria.',
+    healthy_swap: null
+  },
+  {
+    id: 'cafe-negro-grano',
+    name: 'Café Negro de Grano (Sin Azúcar Añadido)',
+    brand: 'Café de Especialidad / Filtrado / Espresso',
+    category: 'BEBIDAS E INFUSIONES',
+    traffic_light: 'GREEN',
+    keywords: ['cafe', 'cafe negro', 'espresso', 'cafe filtrado', 'americano', 'cafe en grano'],
+    ingredients_raw: '100% café arábica tostado y molido infusionado en agua caliente.',
+    harmful_items: [],
+    clinical_advice: 'Avalado por la Asociación Europea para el Estudio del Hígado (EASL): 2 a 3 tazas al día reducen la fibrosis hepática y normalizan enzimas ALT.',
+    healthy_swap: null
+  },
+  {
+    id: 'te-verde-matcha',
+    name: 'Té Verde / Té Matcha en Hebras',
+    brand: 'Té Verde Natural',
+    category: 'BEBIDAS E INFUSIONES',
+    traffic_light: 'GREEN',
+    keywords: ['te verde', 'matcha', 'te en hebras', 'sencha', 'infusion verde'],
+    ingredients_raw: 'Hojas secas de Camellia sinensis ricas en catequinas (EGCG).',
+    harmful_items: [],
+    clinical_advice: 'Su galato de epigalocatequina (EGCG) es uno de los antioxidantes más potentes para reducir el estrés oxidativo en esteatohepatitis.',
+    healthy_swap: null
+  },
+
+  // =========================================================================
+  // 🔴 3. SALSAS, CONDIMENTOS Y DULCES (ALERTA ROJA)
+  // =========================================================================
+  {
+    id: 'ketchup-tradicional',
     name: 'Kétchup Tradicional Comercial',
-    brand: 'Marcas Masivas de Supermercado',
-    category: 'Salsas & Condimentos',
+    brand: 'Salsas Industriales Masivas',
+    category: 'DULCES, SALSAS Y SNACKS',
     traffic_light: 'RED',
-    keywords: ['ketchup', 'catsup', 'ketchut', 'salsa de tomate dulce'],
-    ingredients_raw: 'Concentrado de tomate, jarabe de maíz de alta fructosa (JMAF), vinagre destilado, jarabe de maíz, sal, cebolla en polvo, especias.',
+    keywords: ['ketchup', 'catsup', 'salsa de tomate dulce', 'ketchut'],
+    ingredients_raw: 'Concentrado de tomate, jarabe de maíz de alta fructosa (JMAF), vinagre, jarabe de maíz regular, sal, cebolla en polvo, especias.',
     harmful_items: [
-      { name: 'Jarabe de Maíz de Alta Fructosa (JMAF)', term: 'JMAF', risk: 'RED', mechanism: 'El 100% de la fructosa libre se metaboliza en el hígado; activa la lipogénesis de novo y genera esteatosis acelerada.' },
-      { name: 'Jarabe de Maíz Regular', term: 'Jarabe de maíz', risk: 'RED', mechanism: 'Añade glucosa de altísimo índice glucémico que dispara la insulina y bloquea la quema de grasa hepática.' }
+      { name: 'Jarabe de Maíz de Alta Fructosa (JMAF)', risk: 'RED', mechanism: 'Hasta 1/3 del envase es azúcar líquido; fuente primaria oculta de fructosa en niños.' },
+      { name: 'Jarabe de Maíz de Glucosa', risk: 'RED', mechanism: 'Pico glucémico agudo que frena la quema de lípidos en el hígado.' }
     ],
-    clinical_advice: 'Hasta un 33% del peso de este producto es azúcar líquido concentrado. Es una de las vías más comunes de ingesta oculta de JMAF en niños.',
+    clinical_advice: 'Por cada cucharada sopera de kétchup, el niño consume el equivalente a un terrón entero de azúcar refinado con fructosa libre.',
     healthy_swap: {
-      product: 'Salsa Casera de Tomate al Orégano y AOVE',
-      reasoning: 'Elaborada en 10 minutos con tomates naturales triturados, aceite de oliva virgen extra y hierbas provenzales. 0% fructosa añadida.'
+      product: 'Salsa Casera de Tomates Frescos con Orégano y Aceite de Oliva Extra Virgen',
+      reasoning: 'Rica en licopeno natural termo-biodisponible y polifenoles sin adición de azúcares.'
     }
   },
   {
-    id: 'bebida-cola-comercial',
-    name: 'Bebida / Refresco Cola Tradicional',
-    brand: 'Marcas de Refrescos Gasificados',
-    category: 'Bebidas & Jugos',
+    id: 'salsa-bbq-barbacoa',
+    name: 'Salsa Barbacoa / BBQ Comercial',
+    brand: 'Salsas Industriales',
+    category: 'DULCES, SALSAS Y SNACKS',
     traffic_light: 'RED',
-    keywords: ['coca', 'cola', 'pepsi', 'bebida', 'gaseosa', 'refresco', 'soda'],
-    ingredients_raw: 'Agua carbonatada, jarabe de maíz de alta fructosa (JMAF) o azúcar, colorante caramelo IV, ácido fosfórico, cafeína.',
+    keywords: ['bbq', 'barbacoa', 'salsa bbq', 'salsa barbacoa', 'sweet baby rays'],
+    ingredients_raw: 'Jarabe de maíz de alta fructosa (JMAF), puré de tomate, vinagre, melaza, almidón modificado, sal, humo líquido, colorante caramelo.',
     harmful_items: [
-      { name: 'Jarabe de Maíz de Alta Fructosa (JMAF / HFCS-55)', term: 'JMAF / Azúcar libre', risk: 'RED', mechanism: 'Satura la fructoquinasa hepática en menos de 15 minutos, convirtiéndose directamente en gotas de triglicéridos en los hepatocitos.' },
-      { name: 'Colorante Caramelo IV', term: 'Caramelo IV', risk: 'YELLOW', mechanism: 'Subproducto con compuestos avanzados de glicación que promueven estrés oxidativo hepático.' }
+      { name: 'JMAF como Primer Ingrediente', risk: 'RED', mechanism: 'Supera incluso al kétchup en porcentaje de fructosa libre por porción.' }
     ],
-    clinical_advice: 'Una sola lata contiene más de 39g de azúcares libres. Es el factor dietético #1 asociado a esteatohepatitis no alcohólica en menores de edad.',
+    clinical_advice: 'Contiene hasta un 45% de carbohidratos simples. Engañosamente consumida como salsa salada de carnes.',
     healthy_swap: {
-      product: 'Agua Gasificada Natural con Rodajas de Cítricos o Frutos Rojos',
-      reasoning: 'Mantiene la sensación burbujeante refrescante sin una sola gota de fructosa libre ni edulcorantes hepatotóxicos.'
+      product: 'Chimichurri Casero de Perejil, Ajo, Limón y Aceite de Oliva Extra Virgen',
+      reasoning: 'Cero carbohidratos, alto en clorofila y sulfuros protectores para los hepatocitos.'
     }
   },
   {
-    id: 'galletas-rellenas',
-    name: 'Galletas Dulces Rellenas de Crema',
-    brand: 'Snacks y Golosinas Industriales',
-    category: 'Snacks & Galletas',
-    traffic_light: 'RED',
-    keywords: ['galletas', 'galleta', 'oreo', 'triton', 'rellenas', 'obleas', 'dulces'],
-    ingredients_raw: 'Harina de trigo enriquecida, azúcar, grasa vegetal hidrogenada (aceite de palma parcialmente hidrogenado), jarabe de glucosa-fructosa, cacao, lecitina de soya.',
-    harmful_items: [
-      { name: 'Grasas Vegetales Hidrogenadas (Grasas Trans)', term: 'Aceite parcialmente hidrogenado', risk: 'RED', mechanism: 'Inducen estrés en el retículo endoplasmático de los hepatocitos, acelerando la fibrosis hepática.' },
-      { name: 'Jarabe de Glucosa-Fructosa', term: 'Jarabe de glucosa-fructosa', risk: 'RED', mechanism: 'Combinación ultraprocesada diseñada para hiperpalatabilidad que maximiza la esteatosis hepática.' }
-    ],
-    clinical_advice: 'Combinación crítica de grasas inflamatorias y azúcares de absorción rápida. Promueve esteatohepatitis activa y elevación persistente de ALT/AST.',
-    healthy_swap: {
-      product: 'Galletas Caseras de Avena, Plátano y Cacao Puro (100%)',
-      reasoning: 'Horneadas en 15 minutos con fibra de avena soluble (betaglucano) y antioxidantes del cacao sin grasas hidrogenadas ni jarabes.'
-    }
-  },
-  {
-    id: 'nectar-jugo-caja',
-    name: "Jugo / Néctar en Caja 'Sin Azúcar Añadido'",
-    brand: 'Línea Jugos Infantiles Comerciales',
-    category: 'Bebidas & Jugos',
-    traffic_light: 'RED',
-    keywords: ['jugo', 'nectar', 'jugo en caja', 'watts', 'andina', 'tutti', 'concentrado de fruta'],
-    ingredients_raw: 'Agua, concentrado de manzana y uva reconstituido, ácido cítrico, saborizantes idénticos al natural, sucralosa, vitamina C.',
-    harmful_items: [
-      { name: 'Concentrado de Fruta Reconstituido (Fructosa Libre)', term: 'Concentrado de fruta', risk: 'RED', mechanism: 'Al retirar la pulpa y la fibra vegetal, la fructosa queda libre y se absorbe masivamente en el sistema portal hepático.' }
-    ],
-    clinical_advice: "Los concentrados de fruta actúan bioquímicamente igual que el azúcar refinado: el hígado no distingue si la fructosa vino de una manzana destilada o de un jarabe.",
-    healthy_swap: {
-      product: 'Fruta Entera con Piel (Manzana verde / Pera) + Agua Pura',
-      reasoning: 'La matriz de fibra intacta ralentiza la absorción intestinal y alimenta la microbiota protectora del eje intestino-hígado.'
-    }
-  },
-  {
-    id: 'cereal-infantil-azucarado',
-    name: 'Cereal Infantil Azucarado de Desayuno',
-    brand: 'Cereales de Caja Masivos',
-    category: 'Panadería & Cereales',
-    traffic_light: 'RED',
-    keywords: ['cereal', 'cereales', 'chocapic', 'froot loops', 'corn flakes', 'zucaritas', 'estrellitas'],
-    ingredients_raw: 'Harina de maíz, azúcar refinada, jarabe de glucosa, maltodextrina, aceite de palma, sal, colorantes artificiales.',
-    harmful_items: [
-      { name: 'Maltodextrina y Jarabe de Glucosa', term: 'Maltodextrina', risk: 'RED', mechanism: 'Índice glucémico superior a 110. Causa hiperinsulinemia que frena la beta-oxidación hepática de ácidos grasos.' },
-      { name: 'Azúcares Añadidos Refinados', term: 'Azúcar refinada', risk: 'RED', mechanism: 'Acelera la acumulación de triglicéridos en el parénquima hepático.' }
-    ],
-    clinical_advice: 'Provoca picos masivos de glucosa e insulina a primera hora de la mañana, condicionando la lipogénesis durante todo el día escolar.',
-    healthy_swap: {
-      product: 'Porridge Tibio de Avena Integral con Canela y Semillas',
-      reasoning: 'Aporta energía sostenida de bajo índice glucémico y estimula la producción de ácidos grasos de cadena corta antiinflamatorios.'
-    }
-  },
-  {
-    id: 'pan-blanco-molde',
-    name: 'Pan de Molde Blanco Industrial',
-    brand: 'Panaderías Industriales',
-    category: 'Panadería & Cereales',
-    traffic_light: 'RED',
-    keywords: ['pan', 'pan blanco', 'pan de molde', 'pan bimbo', 'pan lactal', 'pan tostado'],
-    ingredients_raw: 'Harina de trigo refinada, agua, jarabe de maíz, levadura, grasa vegetal refinada, sal, conservantes (propionato de calcio).',
-    harmful_items: [
-      { name: 'Jarabe de Maíz Añadido', term: 'Jarabe de maíz', risk: 'RED', mechanism: 'Se utiliza en panadería industrial para dar suavidad y coloración rápida, introduciendo fructosa en un alimento salado.' },
-      { name: 'Harina de Trigo Ultra-Refinada', term: 'Harina refinada', risk: 'YELLOW', mechanism: 'Carente de fibra, genera picos glucémicos elevados.' }
-    ],
-    clinical_advice: 'Muchos panes de molde industriales contienen jarabes de maíz ocultos. Revisa siempre que la lista de ingredientes no contenga jarabes.',
-    healthy_swap: {
-      product: 'Pan 100% Integral de Grano Entero o Masa Madre Auténtica',
-      reasoning: 'La fermentación lenta de masa madre disminuye el índice glucémico y mejora la sensibilidad hepática a la insulina.'
-    }
-  },
-  {
-    id: 'nuggets-pollo-congelados',
-    name: 'Nuggets de Pollo Congelados Industriales',
-    brand: 'Congelados de Supermercado',
-    category: 'Carnes & Congelados',
-    traffic_light: 'RED',
-    keywords: ['nuggets', 'nugget', 'pollo frito', 'apanado', 'patitas de pollo'],
-    ingredients_raw: 'Carne de pollo separada mecánicamente, agua, harina de trigo, aceite de soya parcialmente hidrogenado, dextrosa, almidón modificado, sal, fosfatos.',
-    harmful_items: [
-      { name: 'Aceite Parcialmente Hidrogenado (Trans)', term: 'Parcialmente hidrogenado', risk: 'RED', mechanism: 'Grasas termo-oxidadas que aumentan las transaminasas hepáticas y los marcadores de inflamación TNF-alfa.' },
-      { name: 'Dextrosa Oculta en Rebozado', term: 'Dextrosa', risk: 'YELLOW', mechanism: 'Azúcar simple añadido al empanizado para acelerar el dorado en fritura.' }
-    ],
-    clinical_advice: 'Ultraprocesado con grasa de baja calidad y almidones refinados. Un disparador directo de transaminasas ALT/TGP en controles pediátricos.',
-    healthy_swap: {
-      product: 'Nuggets Caseros NutraLive de Pechuga Real Horneados con Avena',
-      reasoning: '100% pechuga de pollo magra rebozada en avena integral triturada y dorada al horno con un toque de aceite de oliva.'
-    }
-  },
-  {
-    id: 'sirope-agave',
-    name: 'Sirope o Néctar de Agave Comercial',
-    brand: 'Dietéticas y Tiendas Naturales',
-    category: 'Endulzantes & Mieles',
+    id: 'sirope-jarabe-agave',
+    name: 'Sirope o Miel de Agave Comercial',
+    brand: 'Línea Tiendas Naturales / Dietéticas',
+    category: 'DULCES, SALSAS Y SNACKS',
     traffic_light: 'RED',
     keywords: ['agave', 'sirope de agave', 'miel de agave', 'nectar de agave'],
-    ingredients_raw: '100% jarabe concentrado de agave hidrolizado térmicamente.',
+    ingredients_raw: '100% jugo concentrado de agave azul hidrolizado térmicamente.',
     harmful_items: [
-      { name: 'Fructosa Libre Ultra-Concentrada (75-90%)', term: 'Fructosa concentrada', risk: 'RED', mechanism: 'Aunque se vende como natural o de bajo índice glucémico, contiene más fructosa pura que el propio azúcar de mesa. Tóxico para el hígado graso.' }
+      { name: 'Fructosa Libre Ultra-Concentrada (75-85%)', risk: 'RED', mechanism: 'Posee mayor concentración de fructosa pura que el propio JMAF industrial.' }
     ],
-    clinical_advice: 'Es uno de los mayores mitos dietéticos: su bajo índice glucémico se debe precisamente a que no contiene glucosa, sino fructosa que satura directamente el hígado.',
+    clinical_advice: 'Uno de los mayores fraudes de la alimentación saludable: su bajo índice glucémico se debe a que la fructosa no usa insulina pero intoxica el hígado.',
     healthy_swap: {
-      product: 'Canela de Ceilán en Polvo o Extracto Puro de Vainilla sin Azúcar',
-      reasoning: 'La canela de Ceilán ha demostrado mejorar la sensibilidad hepática a la insulina sin aportar fructosa.'
+      product: 'Puré de Manzana Horneada con Canela de Ceilán o Frutos Rojos',
+      reasoning: 'Dulzor natural acompañado de fibra que no sobrecarga la enzima fructoquinasa.'
     }
   },
   {
-    id: 'crema-cacao-avellanas',
-    name: 'Crema de Cacao y Avellanas Comercial',
-    brand: 'Untables Dulces Industriales',
-    category: 'Snacks & Galletas',
+    id: 'galletas-rellenas-crema',
+    name: 'Galletas Rellenas de Crema (Oreo, Tritón, etc.)',
+    brand: 'Snacks y Galletas Masivas',
+    category: 'DULCES, SALSAS Y SNACKS',
     traffic_light: 'RED',
-    keywords: ['nutella', 'crema de cacao', 'untable dulce', 'avellanas con chocolate'],
-    ingredients_raw: 'Azúcar (55%), aceite de palma vegetal, avellanas (13%), leche descremada en polvo, cacao desgrasado, lecitina de soya, vainillina.',
+    keywords: ['galletas', 'galleta', 'oreo', 'triton', 'galletas rellenas', 'galletas dulces'],
+    ingredients_raw: 'Harina de trigo enriquecida, azúcar refinada, grasa vegetal parcialmente hidrogenada (trans), jarabe de glucosa-fructosa, cacao alcalinizado.',
     harmful_items: [
-      { name: 'Azúcar Refinada Masiva (55%)', term: 'Azúcar 55%', risk: 'RED', mechanism: 'Cada porción de 2 cucharadas aporta más de 20g de azúcares simples inductores de esteatosis.' },
-      { name: 'Aceite de Palma Refinado', term: 'Aceite de palma', risk: 'RED', mechanism: 'Alto en ácido palmítico saturado que favorece la apoptosis celular en los hepatocitos.' }
+      { name: 'Grasas Vegetales Hidrogenadas (Trans)', risk: 'RED', mechanism: 'Estrés oxidativo en el retículo endoplasmático de los hepatocitos y fibrosis.' },
+      { name: 'Jarabe de Glucosa-Fructosa', risk: 'RED', mechanism: 'Combustible directo para la síntesis de triglicéridos hepáticos.' }
     ],
-    clinical_advice: 'Más de la mitad del frasco es azúcar pura disuelta en grasa de palma. Debe eliminarse por completo de la dieta familiar en MASLD.',
+    clinical_advice: 'Sinapsis de hiperpalatabilidad que fomenta consumo compulsivo y alza continua de transaminasas ALT/GGT.',
     healthy_swap: {
-      product: 'Crema Casera de Avellanas 100% Natural con Cacao Amargo Puro',
-      reasoning: 'Avellanas tostadas trituradas al natural con cacao puro y una pizca de eritritol o stevia. Rica en vitamina E protectora.'
+      product: 'Galletas Caseras de Avena, Plátano Machacado y Cacao 100% Puro',
+      reasoning: 'Aportan betaglucanos de avena que quelan y expulsan el exceso de ácidos biliares.'
     }
   },
   {
-    id: 'salsa-bbq-comercial',
-    name: 'Salsa Barbacoa (BBQ) Comercial',
-    brand: 'Salsas Industriales',
-    category: 'Salsas & Condimentos',
+    id: 'chocolate-leche-azucar',
+    name: 'Chocolate de Leche Tradicional / Golosinas',
+    brand: 'Chocolates Masivos (Sahne-Nuss, Trencito, etc.)',
+    category: 'DULCES, SALSAS Y SNACKS',
     traffic_light: 'RED',
-    keywords: ['bbq', 'barbacoa', 'salsa bbq', 'salsa barbacoa'],
-    ingredients_raw: 'Puré de tomate, jarabe de maíz de alta fructosa (JMAF), vinagre destilado, melaza, sal, almidón modificado, humo líquido, colorante caramelo.',
+    keywords: ['chocolate', 'chocolate de leche', 'trencito', 'golosina', 'barra de chocolate'],
+    ingredients_raw: 'Azúcar refinada, leche entera en polvo, manteca de cacao, pasta de cacao (28%), emulsionantes (lecitina de soya).',
     harmful_items: [
-      { name: 'Jarabe de Maíz de Alta Fructosa', term: 'JMAF', risk: 'RED', mechanism: 'La salsa BBQ es prácticamente un jarabe azucarado saborizado; hasta 16g de azúcar por porción.' }
+      { name: 'Más de 50% de Azúcar Blanca', risk: 'RED', mechanism: 'Escaso contenido de flavanoles protectores del cacao y alto impacto glucémico.' }
     ],
-    clinical_advice: 'Condimento de alto riesgo oculto. Dos cucharadas sobre la carne equivalen al azúcar de un postre industrial.',
+    clinical_advice: 'Es fundamental diferenciar entre el cacao auténtico (medicinal) y las golosinas azucaradas con sabor a chocolate.',
     healthy_swap: {
-      product: 'Chimichurri Casero al Limón con Hierbas Frescas y AOVE',
-      reasoning: 'Perejil, ajo, orégano, jugo de limón natural y aceite de oliva virgen extra. Aporta polifenoles antiinflamatorios.'
+      product: 'Chocolate Negro con 85% a 90% de Cacao Puro Sin Azúcar',
+      reasoning: 'Rico en teobromina y procianidinas que mejoran la sensibilidad hepática a la insulina.'
+    }
+  },
+  {
+    id: 'miel-de-abejas-pura',
+    name: 'Miel de Abejas Pura o Industrial',
+    brand: 'Miel de Campo / Apícola',
+    category: 'DULCES, SALSAS Y SNACKS',
+    traffic_light: 'YELLOW',
+    keywords: ['miel', 'miel de abeja', 'miel pura', 'miel de ulmo'],
+    ingredients_raw: '100% néctar floral recolectado por abejas (contiene ~40% fructosa y 30% glucosa).',
+    harmful_items: [
+      { name: 'Alta Proporción de Fructosa Libre (~40%)', risk: 'YELLOW', mechanism: 'Aunque contiene micronutrientes y enzimas, su fructosa impacta directamente en el hígado si hay esteatosis.' }
+    ],
+    clinical_advice: 'En personas con hígado graso activo debe restringirse estrictamente. Usar como máximo media cucharadita muy esporádica.',
+    healthy_swap: {
+      product: 'Canela de Ceilán en Polvo o Vainilla Natural',
+      reasoning: 'Aporta sensación de calidez y dulzor sin aportar un solo gramo de fructosa libre.'
     }
   },
 
-  // ==========================================
-  // 🟡 PRECAUCIÓN / CONSUMO MODERADO (AMARILLO)
-  // ==========================================
+  // =========================================================================
+  // 🟢 4. FRUTAS FRESCAS Y BENEFICIOSAS (VERDES Y AMARILLAS)
+  // =========================================================================
   {
-    id: 'yogur-frutilla-light',
-    name: "Yogur Batido Frutilla 'Light / 0% Grasa'",
-    brand: 'Lácteos Comerciales',
-    category: 'Lácteos & Postres',
+    id: 'manzana-entera-verde',
+    name: 'Manzana Entera con Cáscara (Verde / Fuji)',
+    brand: 'Fruta Fresca de Huerto',
+    category: 'FRUTAS',
+    traffic_light: 'GREEN',
+    keywords: ['manzana', 'manzana verde', 'manzana roja', 'fuji', 'granny smith'],
+    ingredients_raw: 'Manzana fresca entera con cáscara lavada (rica en pectina, agua y quercetina).',
+    harmful_items: [],
+    clinical_advice: 'La pectina celular encapsula el azúcar; su fermentación en el colon genera butirato que desinflama el parénquima hepático.',
+    healthy_swap: null
+  },
+  {
+    id: 'arandanos-frescos',
+    name: 'Arándanos Silvestres / Frescos',
+    brand: 'Fruta Fresca / Berries',
+    category: 'FRUTAS',
+    traffic_light: 'GREEN',
+    keywords: ['arandano', 'arandanos', 'blueberries', 'mora', 'moras'],
+    ingredients_raw: 'Arándanos frescos crudos (ricos en antocianinas y polifenoles).',
+    harmful_items: [],
+    clinical_advice: 'Superalimento hepático comprobado: inhibe la activación de las células estrelladas hepáticas que causan fibrosis en MASLD.',
+    healthy_swap: null
+  },
+  {
+    id: 'frutillas-fresas',
+    name: 'Frutillas / Fresas Frescas Enteras',
+    brand: 'Fruta Fresca / Berries',
+    category: 'FRUTAS',
+    traffic_light: 'GREEN',
+    keywords: ['frutilla', 'frutillas', 'fresa', 'fresas', 'berries'],
+    ingredients_raw: 'Frutillas enteras crudas (baja carga glucémica, alta vitamina C).',
+    harmful_items: [],
+    clinical_advice: 'Muy bajo contenido de fructosa por porción (menos de 4g por taza) y altísima concentración de ácido elágico antiinflamatorio.',
+    healthy_swap: null
+  },
+  {
+    id: 'palta-aguacate-hass',
+    name: 'Palta / Aguacate Entero (Hass)',
+    brand: 'Fruta Fresca / Grasas Saludables',
+    category: 'FRUTAS',
+    traffic_light: 'GREEN',
+    keywords: ['palta', 'aguacate', 'palta hass', 'guacamole natural'],
+    ingredients_raw: 'Pulpa de palta fresca rica en ácido oleico monoinsaturado, glutatión y potasio.',
+    harmful_items: [],
+    clinical_advice: 'Aporta glutatión, el antioxidante maestro del hígado. Disminuye la acumulación de lípidos hepáticos y mejora el perfil lipídico.',
+    healthy_swap: null
+  },
+  {
+    id: 'platano-maduro',
+    name: 'Plátano / Banana Muy Maduro',
+    brand: 'Fruta Tropical',
+    category: 'FRUTAS',
     traffic_light: 'YELLOW',
-    keywords: ['yogur', 'yogurt', 'yoghurt', 'yogur light', 'yogur descremado'],
-    ingredients_raw: 'Leche descremada pasteurizada, almidón modificado de maíz, concentrado de frutilla, maltodextrina, sucralosa, colorante carmín.',
+    keywords: ['platano', 'banana', 'platano maduro'],
+    ingredients_raw: 'Plátano maduro (el almidón resistente se convierte en glucosa y fructosa de rápida absorción).',
     harmful_items: [
-      { name: 'Maltodextrina y Almidón Modificado', term: 'Maltodextrina', risk: 'YELLOW', mechanism: 'Se añaden para dar textura al retirar la grasa, compensando con carbohidratos de absorción ultrarrápida.' }
+      { name: 'Mayor Índice Glucémico al Madurar', risk: 'YELLOW', mechanism: 'Pierde almidón resistente y concentra azúcares simples.' }
     ],
-    clinical_advice: 'Los productos "light" suelen compensar la falta de grasa con almidones y jarabes. Consumir con moderación y revisar la etiqueta.',
+    clinical_advice: 'Consumir preferentemente cuando la punta aún está ligeramente verde (almidón resistente protector) o acompañar con nueces.',
     healthy_swap: {
-      product: 'Yogur Griego Natural Entero Sin Azúcar + Arándanos Frescos',
-      reasoning: 'Proteína láctea de alta calidad (10g+), probióticos vivos y antioxidantes naturales sin maltodextrinas.'
+      product: 'Plátano Ligeramente Verde con Mantequilla de Almendras 100% Pura',
+      reasoning: 'Aporta prebióticos que nutren la microbiota y aminoran el impacto en la glucosa en sangre.'
     }
   },
   {
-    id: 'galletas-agua-soda',
-    name: 'Galletas de Agua / Soda / Crackers',
-    brand: 'Snacks Salados de Supermercado',
-    category: 'Snacks & Galletas',
+    id: 'uvas-frescas',
+    name: 'Uvas Dulces Frescas',
+    brand: 'Fruta de Mesa',
+    category: 'FRUTAS',
     traffic_light: 'YELLOW',
-    keywords: ['galletas de agua', 'galletas de soda', 'crackers', 'galletas saladas'],
-    ingredients_raw: 'Harina de trigo enriquecida, aceite vegetal de palma, sal, bicarbonato de sodio, emulsionantes.',
+    keywords: ['uva', 'uvas', 'uvas verdes', 'uvas rojas', 'uva moscatel'],
+    ingredients_raw: 'Uvas frescas enteras (alta concentración de azúcares simples por racimo: glucosa y fructosa).',
     harmful_items: [
-      { name: 'Harina Refinada sin Fibra', term: 'Harina de trigo refinada', risk: 'YELLOW', mechanism: 'Alto índice glucémico a pesar de no saber dulces. Se convierten rápidamente en glucosa sanguínea.' }
+      { name: 'Alta Carga de Azúcares Rápidos', risk: 'YELLOW', mechanism: 'Fácil de sobreconsumir; un racimo mediano aporta hasta 25g de azúcares de rápido paso portal.' }
     ],
-    clinical_advice: 'Falsamente consideradas saludables por no tener azúcar visible. Su digestión rápida eleva la glucosa posprandial.',
+    clinical_advice: 'Porcionar a un puñado pequeño (10-12 uvas) y nunca consumir en forma de jugo colado.',
     healthy_swap: {
-      product: 'Tostadas de Trigo Sarraceno o Semillas de Lino Horneadas',
-      reasoning: 'Ricas en lignanos y fibra mucilaginosa que disminuyen la absorción de carbohidratos en el tracto digestivo.'
-    }
-  },
-  {
-    id: 'granola-comercial-miel',
-    name: 'Granola Comercial con Frutas Deshidratadas',
-    brand: 'Cereales Saludables Comerciales',
-    category: 'Panadería & Cereales',
-    traffic_light: 'YELLOW',
-    keywords: ['granola', 'muesli', 'cereal granola', 'avena tostada con miel'],
-    ingredients_raw: 'Avena laminada, jarabe de glucosa, miel industrial, pasas de uva, aceite de maravilla, coco rallado.',
-    harmful_items: [
-      { name: 'Jarabes Aglutinantes y Fruta Deshidratada Concentrada', term: 'Jarabe / Miel / Pasas', risk: 'YELLOW', mechanism: 'Las frutas deshidratadas concentran hasta 4 veces más fructosa que la fruta fresca.' }
-    ],
-    clinical_advice: 'Moderar las porciones (máximo 2 cucharadas) y preferir versiones sin jarabes aglutinantes ni azúcares añadidos.',
-    healthy_swap: {
-      product: 'Granola Casera de Sartén con Avena Integral, Nueces y Canela',
-      reasoning: 'Tostada al fuego en 5 minutos solo con un toque de aceite de oliva, nueces trituradas y canela. 0% jarabes.'
-    }
-  },
-  {
-    id: 'arroz-blanco-pulido',
-    name: 'Arroz Blanco Tradicional Pulido',
-    brand: 'Granos y Cereales Masivos',
-    category: 'Panadería & Cereales',
-    traffic_light: 'YELLOW',
-    keywords: ['arroz', 'arroz blanco', 'arroz grado 1', 'arroz grano largo'],
-    ingredients_raw: '100% arroz blanco pulido descascarillado.',
-    harmful_items: [
-      { name: 'Almidón de Rápida Digestión', term: 'Almidón pulido', risk: 'YELLOW', mechanism: 'Al perder el salvado y el germen, su digestión enzimática es inmediata, elevando la insulina.' }
-    ],
-    clinical_advice: 'Se recomienda enfriar en el refrigerador durante 12-24 horas antes de consumir para generar "almidón resistente" tipo 3, beneficioso para la microbiota.',
-    healthy_swap: {
-      product: 'Arroz Integral, Quinoa Real o Arroz Blanco Enfriado (Almidón Resistente)',
-      reasoning: 'El almidón resistente fermenta en el colon produciendo butirato que desinflama el hepatocito.'
+      product: 'Taza de Frutillas o Arándanos con Nueces',
+      reasoning: 'Misma frescura pero con la mitad de azúcares y triple de fibra protectora.'
     }
   },
 
-  // ==========================================
-  // 🟢 APROBADO & PROTECTORES HEPÁTICOS (VERDE)
-  // ==========================================
-  {
-    id: 'avena-integral-copos',
-    name: 'Avena Integral en Copos Enteros',
-    brand: 'NutraLive Escudo Hepático',
-    category: 'Panadería & Cereales',
-    traffic_light: 'GREEN',
-    keywords: ['avena', 'avena integral', 'copos de avena', 'oats', 'quaker integral'],
-    ingredients_raw: '100% copos de avena integral seleccionada de grano entero.',
-    harmful_items: [],
-    clinical_advice: 'Alimento estrella anti-esteatosis. Su betaglucano reduce activamente el colesterol LDL y los triglicéridos hepáticos.',
-    healthy_swap: {
-      product: 'Alimento Óptimo de Consumo Diario Recomendado',
-      reasoning: 'Consumir en desayunos, batidos o como sustituto de pan rallado para milanesas y albóndigas al horno.'
-    }
-  },
-  {
-    id: 'aceite-oliva-virgen-extra',
-    name: 'Aceite de Oliva Virgen Extra (AOVE)',
-    brand: 'Prensado en Frío',
-    category: 'Aceites & Grasas Saludables',
-    traffic_light: 'GREEN',
-    keywords: ['aceite de oliva', 'aove', 'oliva virgen extra', 'aceite extra virgen'],
-    ingredients_raw: '100% zumo de aceitunas obtenido únicamente por procedimientos mecánicos en frío.',
-    harmful_items: [],
-    clinical_advice: 'Rico en ácido oleico y polifenoles como el hidroxitirosol. Mejora la función mitocondrial hepática y revierte la esteatosis.',
-    healthy_swap: {
-      product: 'Grasa Protectora de Referencia',
-      reasoning: 'Utilizar 1 a 2 cucharadas soperas diarias en crudo sobre ensaladas y platos calientes al servir.'
-    }
-  },
-  {
-    id: 'huevo-entero-con-yema',
-    name: 'Huevo de Campo Entero (con Yema)',
-    brand: 'Proteína Fresca Natural',
-    category: 'Proteínas & Huevos',
-    traffic_light: 'GREEN',
-    keywords: ['huevo', 'huevos', 'huevo duro', 'yema', 'huevo revuelto'],
-    ingredients_raw: '100% huevo de gallina entero fresco.',
-    harmful_items: [],
-    clinical_advice: 'Contiene la mayor concentración biológica de colina (fosfatidilcolina). La colina es obligatoria para sintetizar VLDL y sacar la grasa fuera del hígado.',
-    healthy_swap: {
-      product: 'Excelente Opción Protectora (1-2 huevos/día)',
-      reasoning: 'Consumir hervido, pochado o revuelto con aceite de oliva. La yema es donde se encuentra el 100% de la colina anti-esteatosis.'
-    }
-  },
-  {
-    id: 'salmon-pescado-azul',
-    name: 'Salmón Fresco / Pescado Azul (Sardina, Trucha)',
-    brand: 'Pescados & Mariscos',
-    category: 'Proteínas & Pescados',
-    traffic_light: 'GREEN',
-    keywords: ['salmon', 'salmón', 'sardinas', 'pescado', 'atun natural', 'trucha'],
-    ingredients_raw: '100% filete de pescado azul fresco.',
-    harmful_items: [],
-    clinical_advice: 'Fuente insuperable de ácidos grasos Omega-3 de cadena larga (EPA y DHA). Reduce la inflamación hepática y la esteatosis en ensayos clínicos.',
-    healthy_swap: {
-      product: 'Consumo Recomendado 2 a 3 veces por semana',
-      reasoning: 'Cocinar al horno o a la plancha con limón y hierbas. Evitar frituras industriales.'
-    }
-  },
-  {
-    id: 'arandanos-frutos-rojos',
-    name: 'Arándanos y Frutos Rojos Frescos',
-    brand: 'Frutas Protectoras',
-    category: 'Frutas & Vegetales',
-    traffic_light: 'GREEN',
-    keywords: ['arandanos', 'arándanos', 'frutos rojos', 'frambuesas', 'moras', 'frutillas'],
-    ingredients_raw: '100% bayas frescas lavadas.',
-    harmful_items: [],
-    clinical_advice: 'Tienen un índice de fructosa intrínseca sumamente bajo y un contenido altísimo de antocianinas que neutralizan radicales libres en el hígado.',
-    healthy_swap: {
-      product: 'La Mejor Fruta Diaria para Pacientes con Hígado Graso',
-      reasoning: 'Consumir 1 taza al día con yogur griego o como snack de media tarde para niños.'
-    }
-  },
-  {
-    id: 'palta-aguacate-entero',
-    name: 'Palta / Aguacate Entero Fresco',
-    brand: 'Vegetales & Grasas Naturales',
-    category: 'Frutas & Vegetales',
-    traffic_light: 'GREEN',
-    keywords: ['palta', 'aguacate', 'avocado', 'guacamole casero'],
-    ingredients_raw: '100% pulpa de palta entera fresca.',
-    harmful_items: [],
-    clinical_advice: 'Aporta grasas monoinsaturadas saludables, glutatión antioxidante y fibra prebiótica que ralentiza la digestión de carbohidratos.',
-    healthy_swap: {
-      product: 'Excelente Sustituto de Mantequillas y Mayonesas',
-      reasoning: 'Reemplaza la mayonesa y los untables industriales en sándwiches y ensaladas familiares.'
-    }
-  },
+  // =========================================================================
+  // 🟢 5. VERDURAS Y HORTALIZAS (MÁXIMA PROTECCIÓN HEPÁTICA)
+  // =========================================================================
   {
     id: 'brocoli-cruciferas',
-    name: 'Brócoli al Vapor y Verduras Crucíferas',
-    brand: 'Vegetales Protectores',
-    category: 'Frutas & Vegetales',
+    name: 'Brócoli al Vapor / Crucíferas (Coliflor, Coles)',
+    brand: 'Hortalizas Frescas',
+    category: 'VERDURAS',
     traffic_light: 'GREEN',
-    keywords: ['brocoli', 'brócoli', 'coliflor', 'repollo', 'coles de bruselas'],
-    ingredients_raw: '100% ramilletes de brócoli fresco.',
+    keywords: ['brocoli', 'coliflor', 'cruciferas', 'repollo', 'coles de bruselas'],
+    ingredients_raw: 'Brócoli fresco (rico en sulforafano, indol-3-carbinol y fibra insoluble).',
     harmful_items: [],
-    clinical_advice: 'Contiene sulforafano e indol-3-carbinol, compuestos bioactivos que activan las enzimas de detoxificación de fase II en el hígado.',
+    clinical_advice: 'El sulforafano activa la vía Nrf2 que induce la síntesis de enzimas desintoxicantes de Fase II en el hepatocito.',
+    healthy_swap: null
+  },
+  {
+    id: 'espinacas-hojas-verdes',
+    name: 'Espinacas Frescas / Acelgas / Rúcula',
+    brand: 'Hojas Verdes de Huerto',
+    category: 'VERDURAS',
+    traffic_light: 'GREEN',
+    keywords: ['espinaca', 'espinacas', 'acelga', 'rucula', 'lechuga', 'hojas verdes'],
+    ingredients_raw: 'Hojas verdes oscuras ricas en clorofila, nitratos naturales, folatos y magnesio.',
+    harmful_items: [],
+    clinical_advice: 'Estimula la producción de óxido nítrico endotelial mejorando la microcirculación de las sinusoides hepáticas.',
+    healthy_swap: null
+  },
+  {
+    id: 'alcachofa-fresca',
+    name: 'Alcachofa / Alcaucil Cocido',
+    brand: 'Hortaliza Fresca',
+    category: 'VERDURAS',
+    traffic_light: 'GREEN',
+    keywords: ['alcachofa', 'alcaucil', 'alcachofas'],
+    ingredients_raw: 'Corazón y hojas de alcachofa (fuente extraordinaria de cinarina y ácido clorogénico).',
+    harmful_items: [],
+    clinical_advice: 'La cinarina promueve el flujo biliar (colerético y colagogo), facilitando la emulsión y expulsión de grasas.',
+    healthy_swap: null
+  },
+  {
+    id: 'tomate-fresco-casero',
+    name: 'Tomate Fresco Maduro',
+    brand: 'Huerto Tradicional',
+    category: 'VERDURAS',
+    traffic_light: 'GREEN',
+    keywords: ['tomate', 'tomates', 'jitomate', 'tomate cherry'],
+    ingredients_raw: 'Tomate fresco entero (fuente estelar de licopeno y vitamina C).',
+    harmful_items: [],
+    clinical_advice: 'El licopeno es un carotenoide que reduce la peroxidación de lípidos y protege la membrana de los hepatocitos.',
+    healthy_swap: null
+  },
+  {
+    id: 'ajo-cebolla-condimento',
+    name: 'Ajo y Cebolla Frescos',
+    brand: 'Condimentos Naturales',
+    category: 'VERDURAS',
+    traffic_light: 'GREEN',
+    keywords: ['ajo', 'cebolla', 'cebollas', 'chalota', 'puerro'],
+    ingredients_raw: 'Ajo y cebolla crudos o salteados suavemente en AOVE (ricos en alicina y quercetina).',
+    harmful_items: [],
+    clinical_advice: 'Compuestos azufrados que potencian la sulfatación hepática y reducen la síntesis endógena de colesterol LDL.',
+    healthy_swap: null
+  },
+
+  // =========================================================================
+  // 🟢 6. CEREALES, GRANOS Y TUBÉRCULOS (INTEGRALES VS REFINADOS)
+  // =========================================================================
+  {
+    id: 'avena-integral-hojuelas',
+    name: 'Avena Integral Tradicional en Hojuelas',
+    brand: 'Cereal Integral Puro',
+    category: 'CEREALES Y TUBÉRCULOS',
+    traffic_light: 'GREEN',
+    keywords: ['avena', 'avena integral', 'hojuelas de avena', 'porridge', 'quaker tradicional'],
+    ingredients_raw: '100% granos de avena integral aplastados en hojuela (ricos en fibra soluble betaglucano).',
+    harmful_items: [],
+    clinical_advice: 'El betaglucano atrapa sales biliares en el intestino obligando al hígado a consumir sus propios depósitos de grasa.',
+    healthy_swap: null
+  },
+  {
+    id: 'arroz-integral-grano',
+    name: 'Arroz Integral / Salvaje / Basmati Integral',
+    brand: 'Granos Enteros',
+    category: 'CEREALES Y TUBÉRCULOS',
+    traffic_light: 'GREEN',
+    keywords: ['arroz integral', 'arroz salvaje', 'arroz negro', 'grano entero'],
+    ingredients_raw: 'Arroz con su salvado y germen intacto (rico en fibra, magnesio y tiamina).',
+    harmful_items: [],
+    clinical_advice: 'Absorción sostenida que previene los picos insulínicos característicos del arroz blanco pulido.',
+    healthy_swap: null
+  },
+  {
+    id: 'arroz-blanco-refinado',
+    name: 'Arroz Blanco Pulido Tradicional',
+    brand: 'Arroz Blanco Comercial',
+    category: 'CEREALES Y TUBÉRCULOS',
+    traffic_light: 'YELLOW',
+    keywords: ['arroz blanco', 'arroz pulido', 'arroz de grano largo blanco'],
+    ingredients_raw: 'Arroz pulido desprovisto de germen y salvado (almidón de absorción rápida).',
+    harmful_items: [
+      { name: 'Carga Glucémica Alta por Falta de Fibra', risk: 'YELLOW', mechanism: 'Genera elevación rápida de glucosa que activa la lipogénesis si se consume en porciones grandes.' }
+    ],
+    clinical_advice: 'Refrigerar tras cocinar (almidón retrógrado resistente) o acompañar siempre de abundantes verduras y aceite de oliva.',
     healthy_swap: {
-      product: 'Vegetal Protector de Base',
-      reasoning: 'Cocinar al vapor ligero (4-5 minutos) para preservar intacta la enzima mirosinasa que libera el sulforafano.'
+      product: 'Arroz Blanco Enfriado 12h (Almidón Resistente) o Arroz Integral',
+      reasoning: 'El enfriamiento transforma el almidón en prebiótico no digerible que no eleva la insulina.'
     }
   },
   {
-    id: 'semillas-chia-lino',
-    name: 'Semillas de Chía y Lino Hidratadas',
-    brand: 'Superalimentos Protectores',
-    category: 'Cereales & Granos',
-    traffic_light: 'GREEN',
-    keywords: ['chia', 'chía', 'lino', 'linaza', 'semillas'],
-    ingredients_raw: '100% semillas enteras de chía y lino.',
-    harmful_items: [],
-    clinical_advice: 'Ricas en ácido alfa-linolénico (ALA) y fibra soluble mucilaginosa que capta ácidos biliares y reduce la resistencia insulínica.',
+    id: 'pan-blanco-industrial',
+    name: 'Pan Blanco de Molde / Marraqueta Blanca',
+    brand: 'Panaderías y Supermercados',
+    category: 'CEREALES Y TUBÉRCULOS',
+    traffic_light: 'RED',
+    keywords: ['pan blanco', 'pan de molde blanco', 'marraqueta', 'pan hallulla', 'baguette blanco'],
+    ingredients_raw: 'Harina de trigo ultra-refinada, agua, levadura, sal, jarabe de maíz o azúcar añadido (en panes de molde).',
+    harmful_items: [
+      { name: 'Harina Blanca Ultra-Refinada', risk: 'RED', mechanism: 'Índice glucémico cercano a 85; estimula la esteatosis hepática por hiperinsulinemia.' },
+      { name: 'Jarabe de Maíz Oculto (en pan de molde)', risk: 'RED', mechanism: 'Añadido para mantener la esponjosidad industrial.' }
+    ],
+    clinical_advice: 'Es uno de los hábitos más difíciles de cortar en familias pero de mayor impacto clínico positivo al sustituir.',
     healthy_swap: {
-      product: 'Adición Diaria en Desayunos y Batidos',
-      reasoning: 'Dejar hidratar en agua durante 15 minutos antes de consumir para liberar sus mucílagos protectores.'
+      product: 'Pan 100% de Grano Entero Integral con Masa Madre Auténtica',
+      reasoning: 'La fermentación ácida de masa madre reduce el índice glucémico y degrada los antinutrientes del grano.'
+    }
+  },
+  {
+    id: 'papas-fritas-comerciales',
+    name: 'Papas Fritas Comerciales / Snacks de Bolsa',
+    brand: 'Snacks Salados (Lay\'s, Pringles, etc.)',
+    category: 'CEREALES Y TUBÉRCULOS',
+    traffic_light: 'RED',
+    keywords: ['papas fritas', 'patatas fritas', 'papas fritas de bolsa', 'snacks de papa', 'papas de fast food'],
+    ingredients_raw: 'Papas, aceite vegetal refinado reutilizado (soya/palma), sal refinada, potenciadores de sabor (glutamato), acrilamida.',
+    harmful_items: [
+      { name: 'Aceites Vegetales Termo-Oxidados y Trans', risk: 'RED', mechanism: 'Provocan peroxidación lipídica masiva en las membranas de los hepatocitos.' },
+      { name: 'Acrilamidas y Productos de Fritura', risk: 'RED', mechanism: 'Hepatotóxicos que aceleran la inflamación enzimática.' }
+    ],
+    clinical_advice: 'Combinación nefasta de almidón gelatinizado de alto IG con grasas degradadas por temperatura.',
+    healthy_swap: {
+      product: 'Bastones de Camote / Batata o Papa Horneados con Romero y Aceite de Oliva',
+      reasoning: 'Horneados a temperatura media con grasa monoinsaturada estable y fibra intacta.'
+    }
+  },
+  {
+    id: 'papas-hervidas-naturales',
+    name: 'Papa / Patata Hervida con Piel',
+    brand: 'Tubérculo Fresco',
+    category: 'CEREALES Y TUBÉRCULOS',
+    traffic_light: 'YELLOW',
+    keywords: ['papa', 'papas', 'patata', 'papa hervida', 'papa cocida'],
+    ingredients_raw: 'Papas enteras hervidas en agua con su piel lavada.',
+    harmful_items: [
+      { name: 'Índice Glucémico Moderado a Alto si se come caliente', risk: 'YELLOW', mechanism: 'El almidón hidratado caliente se absorbe velozmente.' }
+    ],
+    clinical_advice: 'Consumir tibia o fría en ensalada campera con huevo duro y aceite de oliva para reducir el impacto glucémico.',
+    healthy_swap: {
+      product: 'Ensalada Campera de Papas Enfriadas con Huevo Duro, Atún y AOVE',
+      reasoning: 'La proteína y la grasa saludable aplanan la curva de glucosa en sangre.'
+    }
+  },
+
+  // =========================================================================
+  // 🟢 7. PESCADOS, MARISCOS Y PROTEÍNAS PROTECTORAS
+  // =========================================================================
+  {
+    id: 'salmon-pescado-azul',
+    name: 'Salmón Fresco / Pescados Azules (Jurel, Sardinas)',
+    brand: 'Pescadería Fresca / Enlatados al Natural',
+    category: 'PESCADOS Y MARISCOS',
+    traffic_light: 'GREEN',
+    keywords: ['salmon', 'jurel', 'sardinas', 'pescado azul', 'atun al natural', 'omega 3'],
+    ingredients_raw: 'Pescado graso salvaje o cultivado responsablemente (fuente de ácidos grasos EPA y DHA).',
+    harmful_items: [],
+    clinical_advice: 'Estudios clínicos demuestran que 2 a 3 porciones semanales de omega-3 disminuyen el contenido de grasa hepática y los niveles de ALT/AST.',
+    healthy_swap: null
+  },
+  {
+    id: 'atun-al-agua-conserva',
+    name: 'Atún al Agua en Conserva',
+    brand: 'Conservas de Pescado',
+    category: 'PESCADOS Y MARISCOS',
+    traffic_light: 'GREEN',
+    keywords: ['atun', 'atun al agua', 'lomo de atun', 'atun en lata'],
+    ingredients_raw: 'Lomo de atún, agua, sal de mesa.',
+    harmful_items: [],
+    clinical_advice: 'Proteína magra de altísimo valor biológico (sin grasas añadidas). Favorece la saciedad sin elevar la insulina.',
+    healthy_swap: null
+  },
+  {
+    id: 'pechuga-pollo-pavo',
+    name: 'Pechuga de Pollo o Pavo a la Plancha',
+    brand: 'Carnes Blancas Magras',
+    category: 'CARNES Y HUEVOS',
+    traffic_light: 'GREEN',
+    keywords: ['pollo', 'pechuga de pollo', 'pavo', 'pechuga de pavo', 'pollo a la plancha'],
+    ingredients_raw: 'Pechuga magra de pollo o pavo cocinada a la plancha o al horno con especias naturales.',
+    harmful_items: [],
+    clinical_advice: 'Proteína limpia para mantener la masa muscular (fundamental para combatir la resistencia periférica a la insulina).',
+    healthy_swap: null
+  },
+  {
+    id: 'huevo-entero-gallina',
+    name: 'Huevo de Gallina Entero (con Yema)',
+    brand: 'Huevos Frescos de Granja',
+    category: 'CARNES Y HUEVOS',
+    traffic_light: 'GREEN',
+    keywords: ['huevo', 'huevos', 'huevo duro', 'huevo pochado', 'omelette', 'yema de huevo', 'colina'],
+    ingredients_raw: 'Huevo entero fresco (fuente primordial de colina biodisponible, luteína y albúmina).',
+    harmful_items: [],
+    clinical_advice: 'La colina es un nutriente esencial para sintetizar VLDL y transportar la grasa FUERA del hígado. ¡Su déficit provoca hígado graso severo!',
+    healthy_swap: null
+  },
+  {
+    id: 'vienesas-salchichas-industriales',
+    name: 'Vienesas / Salchichas / Embutidos Ultraprocesados',
+    brand: 'Embutidos Masivos (San Jorge, PF, Llanquihue, etc.)',
+    category: 'CARNES Y HUEVOS',
+    traffic_light: 'RED',
+    keywords: ['vienesa', 'vienesas', 'salchicha', 'salchichas', 'chorizo', 'longaniza', 'mortadela', 'pate'],
+    ingredients_raw: 'Carne separada mecánicamente, cuero de cerdo, grasa de cerdo, agua, dextrosa, nitrito de sodio, polifosfatos, humo líquido.',
+    harmful_items: [
+      { name: 'Nitritos y Nitrosaminas Formadas', risk: 'RED', mechanism: 'Aumentan el estrés nitrosativo y dañan el ADN mitocondrial del hepatocito.' },
+      { name: 'Grasas Saturadas Pro-Inflamatorias y Dextrosa', risk: 'RED', mechanism: 'Favorecen endotoxemia metabólica intestinal.' }
+    ],
+    clinical_advice: 'Consumo habitual estrictamente desaconsejado en pacientes pediátricos y adultos con MASLD.',
+    healthy_swap: {
+      product: 'Brochetas Caseras de Pechuga de Pollo Marinadas en Pimentón y Ajo',
+      reasoning: 'Misma presentación atractiva pero con 100% carne real sin nitritos ni almidones.'
+    }
+  },
+  {
+    id: 'carne-vacuno-grasa',
+    name: 'Carne de Vacuno Grasa / Cortes Parrilleros Grasos',
+    brand: 'Carnicerías Tradicionales',
+    category: 'CARNES Y HUEVOS',
+    traffic_light: 'YELLOW',
+    keywords: ['carne de vacuno', 'asado de tira', 'huachalomo', 'costillar', 'carne molida comun'],
+    ingredients_raw: 'Cortes de vacuno con alto porcentaje de grasa intramuscular y externa (>20% lípidos saturados).',
+    harmful_items: [
+      { name: 'Exceso de Ácido Palmítico Saturado', risk: 'YELLOW', mechanism: 'Lipogenicidad elevada si se consume con frecuencia.' }
+    ],
+    clinical_advice: 'Priorizar cortes magros (posta negra, posta rosada, filete, lomo liso) y moderar porción a 1-2 veces por semana.',
+    healthy_swap: {
+      product: 'Posta Negra Magra o Filete de Vacuno a la Plancha',
+      reasoning: 'Hierro hemo y zinc de alta biodisponibilidad con menos de un tercio de grasa saturada.'
+    }
+  },
+
+  // =========================================================================
+  // 🟢 8. LEGUMBRES (FIBRA TERAPÉUTICA)
+  // =========================================================================
+  {
+    id: 'lentejas-guisadas',
+    name: 'Lentejas Tradicionales Guisadas con Verduras',
+    brand: 'Legumbres Secas Tradicionales',
+    category: 'LEGUMBRES',
+    traffic_light: 'GREEN',
+    keywords: ['lentejas', 'lenteja', 'guiso de lentejas', 'sopa de lentejas'],
+    ingredients_raw: 'Lentejas cocidas en caldo de verduras con cebolla, zanahoria, ajo y un toque de comino.',
+    harmful_items: [],
+    clinical_advice: 'Extraordinario aporte de fibra soluble prebiótica y hierro. Alimenta a Akkermansia muciniphila, bacteria protectora contra esteatosis.',
+    healthy_swap: null
+  },
+  {
+    id: 'garbanzos-hummus',
+    name: 'Garbanzos Cocidos / Hummus Casero Tradicional',
+    brand: 'Legumbres / Preparación Casera',
+    category: 'LEGUMBRES',
+    traffic_light: 'GREEN',
+    keywords: ['garbanzos', 'garbanzo', 'hummus', 'pasta de garbanzo'],
+    ingredients_raw: 'Garbanzos cocidos, tahini (sésamo), jugo de limón, ajo y aceite de oliva virgen extra.',
+    harmful_items: [],
+    clinical_advice: 'Índice glucémico ultra-bajo (IG ~28). Excelente opción saciante para reemplazar snacks ultraprocesados.',
+    healthy_swap: null
+  },
+  {
+    id: 'porotos-frijoles-negros',
+    name: 'Porotos / Frijoles Negros Tradicionales',
+    brand: 'Legumbres Frescas / Secas',
+    category: 'LEGUMBRES',
+    traffic_light: 'GREEN',
+    keywords: ['porotos', 'frijoles', 'frijol', 'judias', 'alubias'],
+    ingredients_raw: 'Porotos negros o granados cocidos al vapor o en guiso con calabaza/zapallo.',
+    harmful_items: [],
+    clinical_advice: 'Ricos en flavonoides y fibra que frenan la velocidad de absorción de azúcares en la comida.',
+    healthy_swap: null
+  },
+
+  // =========================================================================
+  // 🟢 9. LÁCTEOS Y DERIVADOS
+  // =========================================================================
+  {
+    id: 'yogurt-griego-natural-sin-azucar',
+    name: 'Yogurt Griego Auténtico Natural Sin Azúcar',
+    brand: 'Lácteos Fermentados Vivos',
+    category: 'LÁCTEOS Y DERIVADOS',
+    traffic_light: 'GREEN',
+    keywords: ['yogurt griego', 'yogur natural', 'yogurt natural', 'kefir', 'yogurt sin azucar'],
+    ingredients_raw: 'Leche entera o descremada pasteurizada, cultivos lácticos vivos (L. bulgaricus, S. thermophilus). Cero azúcar añadida.',
+    harmful_items: [],
+    clinical_advice: 'Los probióticos vivos reducen la permeabilidad intestinal, impidiendo que los lipopolisacáridos bacterianos (LPS) lleguen al hígado e inflamen las células de Kupffer.',
+    healthy_swap: null
+  },
+  {
+    id: 'yogurt-saborizado-azucarado',
+    name: "Yogurt Comercial Saborizado 'Batido' o Infantil",
+    brand: 'Yogures Masivos (Soprole, Nestlé, etc.)',
+    category: 'LÁCTEOS Y DERIVADOS',
+    traffic_light: 'RED',
+    keywords: ['yogurt con sabor', 'yogurt de frutilla', 'yogurt infantil', 'yogurt con cereal', 'chamyto', 'uno al dia'],
+    ingredients_raw: 'Leche, azúcar refinada (12-16g por pote), jarabe de glucosa, almidón modificado, saborizantes artificiales, colorante carmín.',
+    harmful_items: [
+      { name: 'Azúcar Añadido Masivo (Hasta 4 cucharaditas por pote)', risk: 'RED', mechanism: 'Transforma un alimento potencialmente saludable en un postre pro-esteatógeno.' }
+    ],
+    clinical_advice: 'Gran trampa dietética infantil: los padres creen dar calcio y salud, pero están administrando azúcar libre diario.',
+    healthy_swap: {
+      product: 'Yogurt Griego Natural al que tú mismo le agregas Frutillas Frescas o Arándanos',
+      reasoning: 'Obtienes los probióticos sin un solo gramo de jarabes industriales.'
+    }
+  },
+  {
+    id: 'quesillo-queso-fresco',
+    name: 'Quesillo / Queso Fresco / Ricotta Magra',
+    brand: 'Lácteos Frescos',
+    category: 'LÁCTEOS Y DERIVADOS',
+    traffic_light: 'GREEN',
+    keywords: ['quesillo', 'queso fresco', 'ricotta', 'queso cottage'],
+    ingredients_raw: 'Leche pasteurizada, cuajo, sal baja.',
+    harmful_items: [],
+    clinical_advice: 'Alta proteína de caseína y suero sin concentración excesiva de grasas saturadas ni sodio.',
+    healthy_swap: null
+  },
+  {
+    id: 'queso-maduro-amarillo',
+    name: 'Queso Amarillo Maduro (Chanco, Gouda, Cheddar)',
+    brand: 'Queserías',
+    category: 'LÁCTEOS Y DERIVADOS',
+    traffic_light: 'YELLOW',
+    keywords: ['queso mantecoso', 'queso chanco', 'queso gouda', 'queso cheddar', 'queso amarillo'],
+    ingredients_raw: 'Leche entera, cultivos, cuajo, sal, colorante annatto (alto contenido de grasa láctea concentrada ~30%).',
+    harmful_items: [
+      { name: 'Grasas Saturadas Concentradas y Sodio', risk: 'YELLOW', mechanism: 'Aporte calórico denso; no contiene azúcares pero requiere moderación en MASLD.' }
+    ],
+    clinical_advice: 'Consumo aceptable en porciones moderadas (una lámina de 30g). No abusar en pacientes con sobrepeso esteatógeno.',
+    healthy_swap: {
+      product: 'Quesillo Fresco o Queso de Cabra Tradicional',
+      reasoning: 'Grasas de cadena media más fáciles de metabolizar y menor impacto calórico.'
+    }
+  },
+
+  // =========================================================================
+  // 🟢 10. GRASAS SALUDABLES Y FRUTOS SECOS
+  // =========================================================================
+  {
+    id: 'aceite-oliva-extra-virgen',
+    name: 'Aceite de Oliva Virgen Extra (AOVE)',
+    brand: 'Prensado en Frío',
+    category: 'GRASAS Y FRUTOS SECOS',
+    traffic_light: 'GREEN',
+    keywords: ['aceite de oliva', 'aove', 'oliva extra virgen', 'aceite de oliva prensado en frio'],
+    ingredients_raw: '100% zumo de aceitunas extraído mecánicamente en frío (ácido oleico y oleocanthal).',
+    harmful_items: [],
+    clinical_advice: 'Pilar de la dieta mediterránea: el oleocanthal tiene propiedades antiinflamatorias comparables al ibuprofeno celular en el hígado.',
+    healthy_swap: null
+  },
+  {
+    id: 'nueces-de-nogal',
+    name: 'Nueces de Nogal Crudas',
+    brand: 'Frutos Secos Naturales',
+    category: 'GRASAS Y FRUTOS SECOS',
+    traffic_light: 'GREEN',
+    keywords: ['nueces', 'nuez', 'frutos secos', 'walnuts'],
+    ingredients_raw: 'Nueces crudas sin sal ni tostar (ricas en ácido alfa-linolénico ALA y polifenoles).',
+    harmful_items: [],
+    clinical_advice: 'Un puñado diario (30g) mejora notablemente las enzimas hepáticas en personas con MASLD sin producir aumento de peso.',
+    healthy_swap: null
+  },
+  {
+    id: 'margarina-industrial-trans',
+    name: 'Margarina Untable Industrial',
+    brand: 'Grasas Vegetales Industriales',
+    category: 'GRASAS Y FRUTOS SECOS',
+    traffic_light: 'RED',
+    keywords: ['margarina', 'margarinas', 'grasa vegetal para untar', 'manteca vegetal'],
+    ingredients_raw: 'Aceites vegetales interesterificados o parcialmente hidrogenados, agua, sal, emulsionantes, aromatizantes artificiales.',
+    harmful_items: [
+      { name: 'Grasas Interesterificadas y Trans Ocultas', risk: 'RED', mechanism: 'Alteran la fluidez de las membranas mitocondriales hepáticas y promueven esteatohepatitis.' }
+    ],
+    clinical_advice: 'Eliminar completamente de la despensa. Es un ultraprocesado sintético pro-inflamatorio.',
+    healthy_swap: {
+      product: 'Palta / Aguacate Machacado con Sal Marina o Mantequilla Pura de Pastoreo',
+      reasoning: 'Grasa celular natural de alta biodisponibilidad sin procesos químicos industriales.'
+    }
+  },
+
+  // =========================================================================
+  // 🔴 11. COMIDAS RÁPIDAS Y PLATOS FRECUENTES
+  // =========================================================================
+  {
+    id: 'pizza-comercial-delivery',
+    name: 'Pizza Comercial de Delivery / Congelada',
+    brand: 'Cadenas de Pizza Fast Food',
+    category: 'COMIDAS RÁPIDAS Y PLATOS',
+    traffic_light: 'RED',
+    keywords: ['pizza', 'pizzas', 'pizza delivery', 'pizza congelada', 'pepperoni'],
+    ingredients_raw: 'Masa de harina blanca refinada con azúcar, salsa de tomate comercial con almidón, queso análogo procesado, embutidos (pepperoni/jamón procesado).',
+    harmful_items: [
+      { name: 'Suma Crítica: Harina Refinada + Grasas Saturadas + Azúcar en Salsa', risk: 'RED', mechanism: 'Bomba calórica y glucémica que satura las vías oxidativas del hepatocito por más de 12 horas.' }
+    ],
+    clinical_advice: 'Dispara triglicéridos posprandiales inmediatos. Inductor frecuente de transaminasas elevadas en controles de rutina.',
+    healthy_swap: {
+      product: 'Pizza Casera con Base de Pollo o Avena, Salsa de Tomate Natural y Quesillo',
+      reasoning: '100% fibra y proteína real sin harinas blancas refinadas ni embutidos con nitritos.'
+    }
+  },
+  {
+    id: 'hamburguesa-fast-food',
+    name: 'Hamburguesa de Comida Rápida con Papas y Bebida',
+    brand: 'Cadenas Masivas de Comida Rápida',
+    category: 'COMIDAS RÁPIDAS Y PLATOS',
+    traffic_light: 'RED',
+    keywords: ['hamburguesa', 'combo', 'fast food', 'mcdonalds', 'burger', 'whopper'],
+    ingredients_raw: 'Carne picada con aditivos y grasa, pan con jarabe de maíz, mayonesa industrial, kétchup con JMAF, papas fritas y bebida azucarada.',
+    harmful_items: [
+      { name: 'Combo Hiper-Esteatógeno Completo', risk: 'RED', mechanism: 'Concentra JMAF, grasas trans, sodio extremo y harinas refinadas en una sola ingesta.' }
+    ],
+    clinical_advice: 'El menú de comida rápida es el paradigma del síndrome metabólico pediátrico moderno.',
+    healthy_swap: {
+      product: 'Hamburguesa Casera de Carne Magra en Pan Integral con Ensalada Fresca',
+      reasoning: 'Proteína pura, hierro y fibra saciante sin jarabes ni aceites de fritura quemados.'
+    }
+  },
+  {
+    id: 'sushi-frito-cream-cheese',
+    name: 'Sushi Frito / Tempura con Queso Crema y Teriyaki',
+    brand: 'Restaurantes y Delivery de Sushi Masivo',
+    category: 'COMIDAS RÁPIDAS Y PLATOS',
+    traffic_light: 'RED',
+    keywords: ['sushi', 'handroll', 'tempura', 'rolls fritos', 'salsa teriyaki'],
+    ingredients_raw: 'Arroz blanco con vinagre azucarado (mirin/azúcar), frito en panko con aceite caliente, relleno de queso crema alto en grasa, bañado en salsa teriyaki con jarabe.',
+    harmful_items: [
+      { name: 'Arroz con Azúcar Añadido + Fritura Panko', risk: 'RED', mechanism: 'Falso alimento sano: aporta más calorías e índice glucémico que una hamburguesa tradicional.' },
+      { name: 'Salsa Teriyaki Dulce (JMAF / Azúcar Líquido)', risk: 'RED', mechanism: 'Jarabe azucarado camuflado como aderezo japonés.' }
+    ],
+    clinical_advice: 'El sushi occidentalizado pierde todas las virtudes del pescado fresco tradicional.',
+    healthy_swap: {
+      product: 'Sashimi de Salmón Fresco con Ensalada de Pepino y Palta al Sésamo',
+      reasoning: 'Omega-3 de máxima pureza, fibra y grasas monoinsaturadas con 0% azúcares refinados.'
     }
   }
 ];
 
 /**
- * Normaliza cadenas de texto para búsqueda clínica flexible.
+ * Normaliza cadenas de búsqueda para comparaciones insensibles a mayúsculas y acentos.
  */
-function normalizeQuery(text) {
-  if (!text || typeof text !== 'string') return '';
-  return text
+function normalizeQuery(str) {
+  if (!str) return '';
+  return str
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
     .trim();
 }
 
 /**
- * Busca alimentos en el catálogo por nombre o palabra clave.
- * @param {string} query
- * @param {string} filterTrafficLight - 'ALL', 'RED', 'YELLOW', 'GREEN'
+ * Busca alimentos en el catálogo por nombre, categoría o ingredientes.
+ * @param {string} query - Término de búsqueda
+ * @param {string} categoryFilter - Categoría ('TODAS' o nombre de categoría)
+ * @param {string} trafficLightFilter - Semáforo ('ALL', 'RED', 'YELLOW', 'GREEN')
  * @returns {Array<object>}
  */
-export function searchFoodCatalog(query = '', filterTrafficLight = 'ALL') {
+export function searchFoodCatalog(query = '', categoryFilter = 'TODAS', trafficLightFilter = 'ALL') {
   const norm = normalizeQuery(query);
 
   let results = CLINICAL_FOOD_CATALOG;
 
-  if (filterTrafficLight && filterTrafficLight !== 'ALL') {
-    results = results.filter(f => f.traffic_light === filterTrafficLight);
+  // Filtrar por semáforo si aplica
+  if (trafficLightFilter && trafficLightFilter !== 'ALL') {
+    results = results.filter(f => f.traffic_light === trafficLightFilter);
   }
 
+  // Filtrar por categoría si aplica
+  if (categoryFilter && categoryFilter !== 'TODAS') {
+    results = results.filter(f => normalizeQuery(f.category) === normalizeQuery(categoryFilter));
+  }
+
+  // Si no hay texto de búsqueda, retornar la lista filtrada
   if (!norm) {
     return results;
   }
 
+  // Búsqueda inteligente por coincidencia de palabras clave, nombre, marca y categoría
   return results.filter(f => {
     const normName = normalizeQuery(f.name);
+    const normBrand = normalizeQuery(f.brand);
     const normCat = normalizeQuery(f.category);
     const normKeywords = f.keywords ? f.keywords.map(k => normalizeQuery(k)) : [];
 
     if (normName.includes(norm)) return true;
+    if (normBrand.includes(norm)) return true;
     if (normCat.includes(norm)) return true;
     if (normKeywords.some(k => k.includes(norm) || norm.includes(k))) return true;
 
-    // Buscar si alguna palabra del query está contenida
-    const words = norm.split(' ').filter(w => w.length >= 3);
-    if (words.some(w => normName.includes(w) || normKeywords.some(k => k.includes(w)))) {
+    // Búsqueda por palabras individuales (longitud >= 3 caracteres)
+    const words = norm.split(/\s+/).filter(w => w.length >= 3);
+    if (words.length > 0 && words.some(w => normName.includes(w) || normKeywords.some(k => k.includes(w)))) {
       return true;
     }
 
@@ -439,7 +896,9 @@ export function searchFoodCatalog(query = '', filterTrafficLight = 'ALL') {
 }
 
 /**
- * Clasifica un alimento ya sea por su NOMBRE, por sus INGREDIENTES, o por ambos.
+ * Clasifica CUALQUIER alimento o plato mediante catálogo exacto o motor heurístico clínico universal.
+ * Garantiza que ninguna búsqueda quede sin acción o sin veredicto.
+ * 
  * @param {string} productName
  * @param {string} ingredientsText
  * @returns {object}
@@ -447,11 +906,13 @@ export function searchFoodCatalog(query = '', filterTrafficLight = 'ALL') {
 export function classifyFoodSmart(productName = '', ingredientsText = '') {
   const nameNorm = normalizeQuery(productName);
   const ingNorm = normalizeQuery(ingredientsText);
+  const fullText = `${nameNorm} ${ingNorm}`.trim();
 
-  // 1. Intentar encontrar coincidencia exacta o cercana en el catálogo clínico
+  // 1. Intentar encontrar coincidencia directa en el catálogo clínico
   if (nameNorm) {
     const catalogMatches = searchFoodCatalog(productName);
     if (catalogMatches.length > 0) {
+      // Priorizar la mejor coincidencia
       const match = catalogMatches[0];
 
       return {
@@ -461,144 +922,143 @@ export function classifyFoodSmart(productName = '', ingredientsText = '') {
         traffic_light: match.traffic_light,
         verdict_title:
           match.traffic_light === 'RED'
-            ? 'ALERTA HEPÁTICA — No Recomendado en Esteatosis / Hígado Graso'
+            ? 'ALERTA HEPÁTICA — No Recomendado en Esteatosis / Hígado Graso (MASLD)'
             : match.traffic_light === 'YELLOW'
-            ? 'PRECAUCIÓN — Carga Glucémica o Ultraprocesamiento Moderado'
+            ? 'PRECAUCIÓN — Carga Glucémica o Procesamiento Moderado'
             : 'APROBADO & SEGURO — Alimento Protector Hepático',
         clinical_advice: match.clinical_advice,
-        detected_harmful_count: match.harmful_items.length,
-        harmful_items: match.harmful_items,
+        detected_harmful_count: match.harmful_items ? match.harmful_items.length : 0,
+        harmful_items: match.harmful_items || [],
         beneficial_items: match.traffic_light === 'GREEN' ? [
           { name: 'Matriz Nutricional Protectora', mechanism: match.clinical_advice }
         ] : [],
         healthy_swap: match.healthy_swap,
         ingredients_raw: match.ingredients_raw,
-        is_from_catalog: true
+        is_from_catalog: true,
+        catalog_id: match.id
       };
     }
   }
 
-  // 2. Si no hubo coincidencia de catálogo, clasificar por análisis de texto de ingredientes
-  const textToScan = `${nameNorm} ${ingNorm}`.trim();
-
-  // Detección de palabras clave de alto riesgo en el nombre o ingredientes
-  const redFlags = [
-    { term: 'jmaf', name: 'Jarabe de Maíz de Alta Fructosa', mechanism: 'Inductor directo de lipogénesis de novo hepática.' },
-    { term: 'hfcs', name: 'Jarabe de Maíz de Alta Fructosa (HFCS)', mechanism: 'Fructosa libre que satura los hepatocitos.' },
-    { term: 'fructosa', name: 'Fructosa Libre / Concentrada', mechanism: 'Metabolismo exclusivo hepático sin regulación por fosfofructoquinasa.' },
-    { term: 'agave', name: 'Jarabe de Agave Concentrado', mechanism: 'Concentración masiva de fructosa libre (hasta 85%).' },
-    { term: 'trans', name: 'Grasas Vegetales Trans', mechanism: 'Estrés del retículo endoplásmico y esteatohepatitis.' },
-    { term: 'hidrogenado', name: 'Aceite Hidrogenado / Parcialmente Hidrogenado', mechanism: 'Grasas alteradas que aumentan inflamación celular.' },
-    { term: 'gaseosa', name: 'Bebida Azucarada Gasificada', mechanism: 'Líquidos de absorción inmediata que saturan el hígado.' },
-    { term: 'cola', name: 'Refresco Cola Tradicional', mechanism: 'Concentración extrema de jarabes azucarados.' },
-    { term: 'ketchup', name: 'Kétchup Industrial', mechanism: 'Salsa densa en jarabes de maíz añadidos.' },
-    { term: 'bbq', name: 'Salsa Barbacoa', mechanism: 'Jarabe de maíz encubierto en condimento salado.' },
-    { term: 'nutella', name: 'Untable Dulce de Cacao y Palma', mechanism: 'Más de 50% de azúcares y grasas saturadas pro-inflamatorias.' }
+  // 2. MOTOR HEURÍSTICO CLÍNICO UNIVERSAL (Para alimentos no listados textualmente)
+  // Evalúa perfiles fisiopatológicos por patrones léxicos y toxicológicos en el hígado
+  const redRules = [
+    { pattern: /\b(alcohol|cerveza|vino|pisco|ron|whisky|vodka|tequila|gin|licor|trago|piscola|champagne|espumante)\b/i, name: 'Alcohol / Etanol Hepato-Tóxico', mechanism: 'Tóxico celular directo. Bloquea la beta-oxidación mitocondrial y precipita esteatohepatitis y fibrosis.' },
+    { pattern: /\b(jmaf|hfcs|fructosa|jarabe de maiz|jarabe de glucosa|sirope|agave|concentrado de fruta)\b/i, name: 'Fructosa Libre o Jarabe Concentrado (JMAF)', mechanism: 'Satura la fructoquinasa hepática en menos de 20 minutos; activa la lipogénesis de novo inmediata.' },
+    { pattern: /\b(frito|frita|frituras|apanado|rebozado|crispy|chicharron|tempura|panko|nugget|nuggets)\b/i, name: 'Fritura y Grasas Termo-Oxidadas', mechanism: 'Aceites sometidos a alta temperatura que generan aldehídos tóxicos y aumentan transaminasas ALT/GGT.' },
+    { pattern: /\b(trans|parcialmente hidrogenado|hidrogenado|margarina|grasa vegetal hidrogenada)\b/i, name: 'Grasas Vegetales Trans / Hidrogenadas', mechanism: 'Inducen estrés en el retículo endoplasmático de los hepatocitos y aumentan la resistencia a la insulina.' },
+    { pattern: /\b(gaseosa|refresco|bebida azucarada|soda|monster|red bull|energetica|nectar|jugo en caja)\b/i, name: 'Bebida Azucarada Líquida de Absorción Inmediata', mechanism: 'Líquidos de absorción portal masiva que sobrecargan de inmediato la capacidad metabólica del hígado.' },
+    { pattern: /\b(ketchup|catsup|bbq|salsa barbacoa|salsa agridulce|teriyaki)\b/i, name: 'Salsa Industrial Densificada con Jarabes Azucarados', mechanism: 'Aporta hasta un 35% de su peso en azúcares libres encubiertos.' },
+    { pattern: /\b(galleta|galletas|oreo|triton|chocman|golosina|caramelo|dulce de leche|manjar|nutella|helado|torta|pastel|queque|dona|donas|croissant|hojaldre)\b/i, name: 'Ultraprocesado Dulce de Alta Densidad y Harinas Refinadas', mechanism: 'Provoca hiperinsulinemia reactiva y acumulación continua de gotas lipídicas en el hepatocito.' },
+    { pattern: /\b(vienesa|vienesas|salchicha|salchichas|chorizo|longaniza|mortadela|pate|embutido|embutidos|tocino|bacon)\b/i, name: 'Embutidos y Carnes Procesadas con Nitritos', mechanism: 'Aportan grasas saturadas pro-inflamatorias y conservantes nitrosados que dañan la función mitocondrial.' },
+    { pattern: /\b(pizza|hamburguesa fast food|completo|italiano|chacarero|lomito mayo|fast food|comida rapida)\b/i, name: 'Comida Rápida Ultra-Calórica y Mezcla Almidón-Grasa', mechanism: 'Satura simultáneamente los receptores de lipoproteínas y dispara triglicéridos posprandiales por más de 12 horas.' }
   ];
 
-  const yellowFlags = [
-    { term: 'maltodextrina', name: 'Maltodextrina', mechanism: 'Índice glucémico superior a 110 con hiperinsulinemia reactiva.' },
-    { term: 'dextrosa', name: 'Dextrosa', mechanism: 'Glucosa simple que bloquea la lipólisis mitocondrial.' },
-    { term: 'almidon modificado', name: 'Almidón Modificado', mechanism: 'Espesante sintético de absorción acelerada.' },
-    { term: 'light', name: 'Producto Comercialmente Catalogado Light', mechanism: 'Suele sustituir grasa con almidones y jarabes.' },
-    { term: 'arroz blanco', name: 'Arroz Blanco Pulido', mechanism: 'Carga glucémica moderada sin fibra amortiguadora.' }
+  const yellowRules = [
+    { pattern: /\b(arroz blanco|fideos blancos|pasta blanca|pure de papas|papa cocida|papas hervidas|pan blanco|marraqueta|hallulla|baguette)\b/i, name: 'Almidón Refinado de Alto Índice Glucémico', mechanism: 'Se descompone velozmente en glucosa, elevando la insulina y frenando la autofagia hepática.' },
+    { pattern: /\b(queso maduro|queso chanco|queso mantecoso|queso amarillo|queso gouda|crema de leche|mantequilla|leche entera)\b/i, name: 'Lácteo Alto en Grasas Saturadas', mechanism: 'Requiere moderación de porciones para no exceder el balance calórico ni sobrecargar la bilis.' },
+    { pattern: /\b(carne grasa|asado de tira|costillar|lomo vetado|carne de cerdo grasa)\b/i, name: 'Corte de Carne Graso', mechanism: 'Alta concentración de ácido palmítico saturado que favorece la esteatosis si el consumo es frecuente.' },
+    { pattern: /\b(miel|azucar morena|azucar rubia|panela|chancaca)\b/i, name: 'Azúcares Naturales Concentrados', mechanism: 'Poseen fructosa natural pero libre; en MASLD debe limitarse estrictamente su empleo diario.' },
+    { pattern: /\b(uva|uvas|mango|platano maduro|higos|fruta deshidratada|pasas)\b/i, name: 'Fruta Tropical o Deshidratada de Alta Concentración Glucémica', mechanism: 'Mayor concentración de azúcares por porción; debe acompañarse siempre de frutos secos o proteína.' }
   ];
 
-  const greenFlags = [
-    { term: 'avena', name: 'Avena Integral', mechanism: 'Betaglucano que limpia el exceso de triglicéridos.' },
-    { term: 'oliva', name: 'Aceite de Oliva Virgen Extra', mechanism: 'Ácido oleico y polifenoles antioxidantes.' },
-    { term: 'aove', name: 'Aceite de Oliva Virgen Extra (AOVE)', mechanism: 'Potente antiinflamatorio hepático.' },
-    { term: 'huevo', name: 'Huevo Entero (con Colina)', mechanism: 'Aporte de colina esencial para expulsar grasa hepática.' },
-    { term: 'salmon', name: 'Salmón / Pescado Azul', mechanism: 'Omega-3 EPA/DHA protector contra la fibrosis.' },
-    { term: 'arandano', name: 'Arándanos Frescos', mechanism: 'Antocianinas que combaten la peroxidación lipídica.' },
-    { term: 'palta', name: 'Palta / Aguacate Entero', mechanism: 'Grasas monoinsaturadas y glutatión protector.' },
-    { term: 'aguacate', name: 'Aguacate Fresco', mechanism: 'Grasas saludables y fibra.' },
-    { term: 'brocoli', name: 'Brócoli y Crucíferas', mechanism: 'Sulforafano que activa la detoxificación celular.' },
-    { term: 'chia', name: 'Semillas de Chía', mechanism: 'Omega-3 vegetal y mucílagos saciantes.' },
-    { term: 'cafe', name: 'Café Negro Sin Azúcar', mechanism: 'Ácido clorogénico con fuerte evidencia médica en MASLD.' }
+  const greenRules = [
+    { pattern: /\b(avena|betaglucano|quinoa|arroz integral|grano entero|salvado)\b/i, name: 'Cereales Integrales Ricos en Fibra Soluble', mechanism: 'Atrapan sales biliares y ralentizan el paso de glucosa al torrente sanguíneo.' },
+    { pattern: /\b(brocoli|coliflor|espinaca|acelga|lechuga|rucula|alcachofa|esparrago|apio|pepino|calabacin|zapallo italiano)\b/i, name: 'Verduras y Crucíferas Desintoxicantes', mechanism: 'Aportan sulforafano, folatos y agua biológica que estimulan la fase II de desintoxicación hepática.' },
+    { pattern: /\b(salmon|jurel|sardina|atun|pescado azul|pescado blanco|merluza|reineta|marisco|camaron)\b/i, name: 'Proteínas Marinas y Omega-3 Antiinflamatorio', mechanism: 'Los ácidos grasos EPA y DHA desactivan factores de transcripción lipogénicos (SREBP-1c).' },
+    { pattern: /\b(huevo|huevos|colina|yema)\b/i, name: 'Colina y Proteínas de Alto Valor Biológico', mechanism: 'Nutriente imprescindible para que el hígado fabrique VLDL y pueda evacuar sus reservas de grasa.' },
+    { pattern: /\b(oliva|aove|aceite de oliva|palta|aguacate|nuez|nueces|almendra|almendras|chia|linaza)\b/i, name: 'Grasas Monoinsaturadas y Antioxidantes', mechanism: 'Ácido oleico y polifenoles que combaten la inflamación de las células endoteliales hepáticas.' },
+    { pattern: /\b(lenteja|lentejas|garbanzo|garbanzos|poroto|porotos|frijol|frijoles)\b/i, name: 'Legumbres y Fibra Prebiótica', mechanism: 'Nutren bacterias intestinales beneficiosas que fortalecen la barrera mucosa y cuidan el hígado.' },
+    { pattern: /\b(manzana|arandano|arandanos|frutilla|frutillas|fresa|fresas|frambuesa|limon|kiwi|pera)\b/i, name: 'Frutas Ricas en Pectina y Polifenoles Protectores', mechanism: 'Antioxidantes que previenen la peroxidación de lípidos celulares.' },
+    { pattern: /\b(cafe|te verde|matcha|infusion|agua mineral|agua pura)\b/i, name: 'Bebidas Hepato-Protectoras', mechanism: 'Ácido clorogénico y catequinas con amplia evidencia científica en reversión de MASLD.' },
+    { pattern: /\b(yogurt natural|yogur natural|yogurt griego|kefir|quesillo|queso fresco|cottage)\b/i, name: 'Lácteos Fermentados y Probióticos', mechanism: 'Microbiota activa que frena la translocación de toxinas al sistema venoso portal.' }
   ];
 
-  const detectedRed = redFlags.filter(f => textToScan.includes(f.term));
-  const detectedYellow = yellowFlags.filter(f => textToScan.includes(f.term));
-  const detectedGreen = greenFlags.filter(f => textToScan.includes(f.term));
+  // Ejecutar escaneo de reglas
+  const matchedRed = redRules.filter(r => r.pattern.test(fullText));
+  const matchedYellow = yellowRules.filter(r => r.pattern.test(fullText));
+  const matchedGreen = greenRules.filter(r => r.pattern.test(fullText));
 
-  if (detectedRed.length > 0) {
+  // Decisión de Semáforo
+  if (matchedRed.length > 0) {
     return {
       product_name: productName || 'Alimento Analizado',
       traffic_light: 'RED',
-      verdict_title: 'ALERTA HEPÁTICA — No Recomendado en Esteatosis / Hígado Graso',
-      clinical_advice: 'Contiene ingredientes o perfiles inductores de lipogénesis de novo o grasas hidrogenadas que sobrecargan el hepatocito.',
-      detected_harmful_count: detectedRed.length,
-      harmful_items: detectedRed.map(r => ({ name: r.name, risk: 'RED', mechanism: r.mechanism })),
+      verdict_title: 'ALERTA HEPÁTICA — No Recomendado en Esteatosis / Hígado Graso (MASLD)',
+      clinical_advice: 'Contiene inductores activos de esteatosis hepática (como fructosa rápida, alcohol, grasas trans o harinas ultra-procesadas) que estimulan la acumulación de triglicéridos en los hepatocitos.',
+      detected_harmful_count: matchedRed.length,
+      harmful_items: matchedRed.map(r => ({ name: r.name, risk: 'RED', mechanism: r.mechanism })),
       beneficial_items: [],
       healthy_swap: {
-        product: 'Sustituto Protector Casero o Natural',
-        reasoning: 'Optar por alimentos enteros con fibra intacta o cocinar versiones caseras libres de jarabes industriales.'
+        product: 'Sustituto Natural Casero Rico en Fibra y Antioxidantes',
+        reasoning: 'Optar por alimentos frescos no envasados, preparados al vapor o a la plancha con aceite de oliva extra virgen y fruta entera con piel.'
       },
       is_from_catalog: false
     };
   }
 
-  if (detectedYellow.length > 0) {
+  if (matchedYellow.length > 0) {
     return {
       product_name: productName || 'Alimento Analizado',
       traffic_light: 'YELLOW',
-      verdict_title: 'PRECAUCIÓN — Carga Glucémica o Ultraprocesamiento Moderado',
-      clinical_advice: 'No se identificó JMAF directo, pero contiene almidones refinados o aditivos que pueden elevar la insulina y retrasar la reversión del hígado graso.',
-      detected_harmful_count: detectedYellow.length,
-      harmful_items: detectedYellow.map(y => ({ name: y.name, risk: 'YELLOW', mechanism: y.mechanism })),
+      verdict_title: 'PRECAUCIÓN — Carga Glucémica o Procesamiento Moderado',
+      clinical_advice: 'No contiene toxinas agudas como JMAF o alcohol, pero posee densidad energética o carga glucémica que puede frenar la quema de grasa hepática si se consume sin control de porción.',
+      detected_harmful_count: matchedYellow.length,
+      harmful_items: matchedYellow.map(y => ({ name: y.name, risk: 'YELLOW', mechanism: y.mechanism })),
       beneficial_items: [],
       healthy_swap: {
-        product: 'Versión Integral No Refinada',
-        reasoning: 'Priorizar cereales enteros y moderar las porciones para evitar picos de glucosa posprandial.'
+        product: 'Alternativa Integral o Combinación con Proteína y Fibra',
+        reasoning: 'Reemplazar por granos enteros (quinoa, avena integral) o acompañar siempre de ensaladas verdes y grasa saludable para aplanar el pico de glucosa.'
       },
       is_from_catalog: false
     };
   }
 
-  if (detectedGreen.length > 0) {
+  if (matchedGreen.length > 0) {
     return {
       product_name: productName || 'Alimento Analizado',
       traffic_light: 'GREEN',
       verdict_title: 'APROBADO & SEGURO — Alimento Protector Hepático',
-      clinical_advice: 'Alimento alineado con la dieta mediterránea modificada para MASLD. Aporta antioxidantes y sustratos protectores celulares.',
+      clinical_advice: 'Alimento alineado con la dieta mediterránea terapéutica para MASLD. Aporta sustratos bioactivos (omega-3, colina, polifenoles o fibra soluble) que apoyan la función y regeneración del hígado.',
       detected_harmful_count: 0,
       harmful_items: [],
-      beneficial_items: detectedGreen.map(g => ({ name: g.name, mechanism: g.mechanism })),
+      beneficial_items: matchedGreen.map(g => ({ name: g.name, mechanism: g.mechanism })),
       healthy_swap: null,
       is_from_catalog: false
     };
   }
 
-  // Si no coincide con nada conocido pero el usuario escribió ingredientes
+  // Si el usuario ingresó ingredientes crudos pero ninguna regla coincidió
   if (ingredientsText.trim().length > 0) {
     return {
-      product_name: productName || 'Alimento Analizado',
+      product_name: productName || 'Producto Analizado por Etiqueta',
       traffic_light: 'GREEN',
-      verdict_title: 'APROBADO CONDICIONAL — Sin Inductores Críticos Detectados',
-      clinical_advice: 'La lista de ingredientes no contiene menciones explícitas de JMAF, grasas trans ni maltodextrina. Apto para consumo moderado.',
+      verdict_title: 'APROBADO CONDICIONAL — Sin Alertas Críticas Declaradas',
+      clinical_advice: 'En la lista de ingredientes analizada no figuran jarabes de maíz (JMAF), grasas trans hidrogenadas ni azúcares simples evidentes. Es apto para consumo moderado.',
       detected_harmful_count: 0,
       harmful_items: [],
       beneficial_items: [
-        { name: 'Sin Jarabes Declarados', mechanism: 'No se identificó fructosa libre añadida.' }
+        { name: 'Libre de JMAF y Grasas Trans Identificadas', mechanism: 'No se encontraron inductores industriales directos de esteatosis hepática.' }
       ],
       healthy_swap: null,
       is_from_catalog: false
     };
   }
 
-  // Si solo escribió un nombre genérico no identificado
+  // Si solo escribió un nombre genérico no reconocido por el diccionario
   return {
-    product_name: productName || 'Alimento Analizado',
+    product_name: productName || 'Alimento Consultado',
     traffic_light: 'YELLOW',
-    verdict_title: 'REVISIÓN RECOMENDADA — Verifica la Etiqueta',
-    clinical_advice: `No tenemos este alimento específico en el catálogo clínico de alta frecuencia. Te recomendamos verificar si en su etiqueta figura Jarabe de Maíz (JMAF), maltodextrina o grasas parcialmente hidrogenadas.`,
+    verdict_title: 'EVALUACIÓN CLÍNICA GENERAL — Verifica su Preparación',
+    clinical_advice: `Para ${productName || 'este alimento'}, la recomendación clínica consiste en verificar que no contenga azúcares líquidos añadidos (JMAF, sacarosa) ni haya sido frito en aceites industriales reutilizados. Si es una preparación casera con ingredientes frescos, su consumo es seguro.`,
     detected_harmful_count: 0,
     harmful_items: [],
-    beneficial_items: [],
+    beneficial_items: [
+      { name: 'Guía de Consumo Consciente', mechanism: 'Priorizar cocción al horno, vapor o plancha y evitar salsas industriales dulces.' }
+    ],
     healthy_swap: {
-      product: 'Ingrediente Fresco sin Empaquetar',
-      reasoning: 'Los alimentos frescos sin código de barras son siempre la opción más segura para el hígado.'
+      product: 'Versión Casera al Vapor o a la Plancha con Aceite de Oliva Extra Virgen',
+      reasoning: 'Preparar en casa garantiza el control absoluto de azúcares ocultos y grasas termo-oxidadas.'
     },
     is_from_catalog: false
   };
