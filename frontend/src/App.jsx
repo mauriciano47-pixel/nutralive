@@ -132,14 +132,14 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* 1. Pre-pantalla de iniciación de 3 segundos */}
-      {mostrarSplash && (
-        <SplashScreenNutraLive onCompletado={() => setMostrarSplash(false)} />
+      {/* 1. Verificación Inicial de Usuario (Prioritario e Inmediato en Segundo 0 si no hay sesión) */}
+      {(!usuarioActivo || mostrarLobby) && (
+        <LobbyNutraLive onVerificacionExitosa={manejarVerificacionExitosa} />
       )}
 
-      {/* 2. Modal de Verificación de Usuario al inicio */}
-      {(!mostrarSplash && (!usuarioActivo || mostrarLobby)) && (
-        <LobbyNutraLive onVerificacionExitosa={manejarVerificacionExitosa} />
+      {/* 2. Pre-pantalla animada de bienvenida solo si el usuario ya validó su sesión */}
+      {usuarioActivo && mostrarSplash && (
+        <SplashScreenNutraLive onCompletado={() => setMostrarSplash(false)} />
       )}
 
       {/* Barra de Navegación Superior */}
