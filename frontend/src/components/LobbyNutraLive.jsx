@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
 
-export default function LobbyNutraLive({ onVerificacionExitosa }) {
-  // Pestañas principales: 'crear_cuenta' | 'iniciar_sesion'
-  const [tabAuth, setTabAuth] = useState('crear_cuenta');
+export default function LobbyNutraLive({ onVerificacionExitosa, onCerrar }) {
+  // Pestaña activa por defecto: 'iniciar_sesion' | 'crear_cuenta'
+  const [tabAuth, setTabAuth] = useState('iniciar_sesion');
 
   // Modo de perfil: 'familia' (Tutor pediátrico/familiar) | 'especialista' (Nutricionista/Médico)
   const [rolUsuario, setRolUsuario] = useState('familia');
 
-  // Campos de formulario
-  const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [mostrarPassword, setMostrarPassword] = useState(false);
+  // Estados del formulario de Inicio de Sesión
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [mostrarPasswordLogin, setMostrarPasswordLogin] = useState(false);
+
+  // Estados del formulario de Creación de Cuenta
+  const [regNombre, setRegNombre] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [mostrarPasswordReg, setMostrarPasswordReg] = useState(false);
 
   // Campos específicos de paciente (Modo Familia)
-  const [nombrePaciente, setNombrePaciente] = useState('Sofía');
+  const [nombrePaciente, setNombrePaciente] = useState('Agustina');
   const [edadPaciente, setEdadPaciente] = useState('9');
   const [diagnostico, setDiagnostico] = useState('Esteatosis Hepática (MASLD Grado 1)');
 
@@ -35,8 +40,9 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
     setErrorMsg('');
     setCargandoGoogle(true);
 
-    const emailFinal = emailGoogleElegido || 'mauricio.uribe@gmail.com';
-    const nombreFinal = nombreGoogleElegido || 'Mauricio Uribe Maldonado';
+    const emailFinal = (emailGoogleElegido || 'usuario.google@gmail.com').trim().toLowerCase();
+    const nombreFinal = (nombreGoogleElegido || emailFinal.split('@')[0]).trim();
+    const nombreCapitalizado = nombreFinal.charAt(0).toUpperCase() + nombreFinal.slice(1);
 
     setTimeout(() => {
       setCargandoGoogle(false);
@@ -46,12 +52,12 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
         id: 'goog-' + Date.now(),
         metodoAuth: 'google',
         email: emailFinal,
-        nombre: nombreFinal,
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nombreFinal)}&backgroundColor=10b981`,
+        nombre: nombreCapitalizado,
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nombreCapitalizado)}&backgroundColor=10b981`,
         tipo: rolUsuario,
         rolTitulo: rolUsuario === 'especialista' ? 'Especialista Clínico Verificado' : 'Tutor Familiar',
         paciente: rolUsuario === 'familia' ? {
-          nombre: nombrePaciente.trim() || 'Sofía M.',
+          nombre: nombrePaciente.trim() || 'Agustina',
           edad: parseInt(edadPaciente) || 9,
           diagnostico: diagnostico
         } : {
@@ -64,25 +70,70 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
       };
 
       onVerificacionExitosa(usuarioGoogle);
-    }, 700);
+    }, 500);
   };
 
   // =========================================================================
-  // 2. CREACIÓN DE CUENTA CON CORREO Y CONTRASEÑA
+  // 2. INICIO DE SESIÓN CON CORREO
+  // =========================================================================
+  const manejarInicioSesion = (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+
+    const emailLimpio = loginEmail.trim().toLowerCase();
+    if (!emailLimpio || !emailLimpio.includes('@')) {
+      setErrorMsg('Por favor ingresa un correo electrónico válido (ejemplo@correo.com).');
+      return;
+    }
+
+    if (!loginPassword.trim()) {
+      setErrorMsg('Por favor ingresa tu contraseña.');
+      return;
+    }
+
+    // Nombre derivado amigablemente del correo
+    const parteLocal = emailLimpio.split('@')[0].replace(/[._-]/g, ' ');
+    const nombreCapitalizado = parteLocal.charAt(0).toUpperCase() + parteLocal.slice(1);
+
+    const usuarioSesion = {
+      id: 'usr-' + Date.now(),
+      metodoAuth: 'email',
+      nombre: nombreCapitalizado,
+      email: emailLimpio,
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nombreCapitalizado)}&backgroundColor=059669`,
+      tipo: rolUsuario,
+      rolTitulo: rolUsuario === 'especialista' ? 'Especialista Clínico' : 'Tutor Familiar',
+      paciente: {
+        nombre: nombrePaciente.trim() || 'Agustina',
+        edad: parseInt(edadPaciente) || 9,
+        diagnostico: diagnostico
+      },
+      fechaVerificacion: new Date().toISOString(),
+      cuentaVerificada: true
+    };
+
+    onVerificacionExitosa(usuarioSesion);
+  };
+
+  // =========================================================================
+  // 3. CREACIÓN DE CUENTA NUEVA
   // =========================================================================
   const manejarCreacionCuenta = (e) => {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!nombre.trim()) {
+    if (!regNombre.trim()) {
       setErrorMsg('Por favor ingresa tu nombre completo.');
       return;
     }
-    if (!email.trim() || !email.includes('@')) {
+
+    const emailLimpio = regEmail.trim().toLowerCase();
+    if (!emailLimpio || !emailLimpio.includes('@')) {
       setErrorMsg('Por favor ingresa un correo electrónico válido.');
       return;
     }
-    if (password.length < 6) {
+
+    if (regPassword.length < 6) {
       setErrorMsg('La contraseña debe tener al menos 6 caracteres.');
       return;
     }
@@ -90,14 +141,14 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
     const nuevoUsuario = {
       id: 'usr-' + Date.now(),
       metodoAuth: 'email',
-      nombre: nombre.trim(),
-      email: email.trim().toLowerCase(),
-      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nombre.trim())}&backgroundColor=059669`,
+      nombre: regNombre.trim(),
+      email: emailLimpio,
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(regNombre.trim())}&backgroundColor=059669`,
       tipo: rolUsuario,
       rolTitulo: rolUsuario === 'especialista' ? 'Especialista Clínico Registrado' : 'Tutor Familiar Registrado',
       credencial: rolUsuario === 'especialista' ? (matricula.trim() || 'CLINIC-VERIFIED') : null,
       paciente: rolUsuario === 'familia' ? {
-        nombre: nombrePaciente.trim() || 'Paciente Familiar',
+        nombre: nombrePaciente.trim() || 'Agustina',
         edad: parseInt(edadPaciente) || 9,
         diagnostico: diagnostico
       } : {
@@ -113,59 +164,19 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
   };
 
   // =========================================================================
-  // 3. INICIO DE SESIÓN CON CORREO EXISTENTE
+  // 4. ACCESO RÁPIDO COMO INVITADO / DEMOSTRACIÓN (1 CLIC)
   // =========================================================================
-  const manejarInicioSesion = (e) => {
-    e.preventDefault();
-    setErrorMsg('');
-
-    if (!email.trim() || !email.includes('@')) {
-      setErrorMsg('Por favor ingresa tu correo electrónico registrado.');
-      return;
-    }
-    if (!password.trim()) {
-      setErrorMsg('Por favor ingresa tu contraseña.');
-      return;
-    }
-
-    // Nombre derivado del correo si no se especifica
-    const nombreUsuario = email.split('@')[0].replace(/[._]/g, ' ');
-    const nombreCapitalizado = nombreUsuario.charAt(0).toUpperCase() + nombreUsuario.slice(1);
-
-    const usuarioSesion = {
-      id: 'usr-' + Date.now(),
-      metodoAuth: 'email',
-      nombre: nombreCapitalizado,
-      email: email.trim().toLowerCase(),
-      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(nombreCapitalizado)}&backgroundColor=059669`,
-      tipo: rolUsuario,
-      rolTitulo: rolUsuario === 'especialista' ? 'Especialista Clínico' : 'Tutor Familiar',
-      paciente: {
-        nombre: nombrePaciente.trim() || 'Sofía M.',
-        edad: parseInt(edadPaciente) || 9,
-        diagnostico: diagnostico
-      },
-      fechaVerificacion: new Date().toISOString(),
-      cuentaVerificada: true
-    };
-
-    onVerificacionExitosa(usuarioSesion);
-  };
-
-  // =========================================================================
-  // 4. ACCESO RÁPIDO DEMOSTRATIVO
-  // =========================================================================
-  const ingresoRapidoDemo = () => {
+  const ingresoRapidoInvitado = () => {
     const demoUser = {
-      id: 'usr-demo-sofia',
+      id: 'usr-demo-' + Date.now(),
       metodoAuth: 'demo',
-      email: 'demostracion@nutralive.health',
-      nombre: 'Mauricio Uribe Maldonado',
-      avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Mauricio%20Uribe&backgroundColor=10b981',
+      email: 'familia.agustina@nutralive.health',
+      nombre: 'Familia NutraLive',
+      avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=NutraLive&backgroundColor=10b981',
       tipo: 'familia',
-      rolTitulo: 'Tutor de Sofía (Cuenta Demostrativa)',
+      rolTitulo: 'Tutor Pediátrico (Caso Clínico de Agustina)',
       paciente: {
-        nombre: 'Sofía M.',
+        nombre: 'Agustina',
         edad: 9,
         diagnostico: 'Esteatosis Hepática (MASLD Grado 1)'
       },
@@ -185,51 +196,86 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
       zIndex: 90000,
       background: 'rgba(6, 10, 23, 0.88)',
       backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '1.25rem',
-      overflowY: 'auto'
+      padding: '1rem',
+      overflowY: 'auto',
+      WebkitOverflowScrolling: 'touch'
     }}>
       <div style={{
         background: 'var(--bg-card)',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--border-emerald)',
         boxShadow: '0 24px 70px rgba(0,0,0,0.5)',
-        maxWidth: 490,
+        maxWidth: 480,
         width: '100%',
-        padding: '2rem 1.75rem',
-        animation: 'fadeIn 0.25s ease',
+        maxHeight: '92vh',
+        overflowY: 'auto',
+        padding: '1.75rem 1.5rem',
+        animation: 'fadeIn 0.2s ease',
         position: 'relative'
       }}>
+        {/* Botón de cerrar / continuar como invitado en la esquina superior */}
+        <button
+          type="button"
+          onClick={() => {
+            if (onCerrar) onCerrar();
+            else ingresoRapidoInvitado();
+          }}
+          aria-label="Cerrar pantalla de acceso y explorar"
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            width: '32px',
+            height: '32px',
+            borderRadius: '50%',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-muted)',
+            fontSize: '1rem',
+            fontWeight: 800,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.15s ease'
+          }}
+          title="Omitir por ahora y explorar como Invitado"
+        >
+          ✕
+        </button>
+
         {/* Encabezado y Marca */}
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.25rem' }}>
           <div style={{
-            width: 60,
-            height: 60,
-            borderRadius: '20px',
+            width: 56,
+            height: 56,
+            borderRadius: '18px',
             background: 'linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.9rem',
+            fontSize: '1.8rem',
             boxShadow: '0 8px 24px var(--emerald-glow)',
-            marginBottom: '0.75rem'
+            marginBottom: '0.6rem'
           }}>
             🥗
           </div>
-          <h2 style={{ fontSize: '1.55rem', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
-            Verificación de Usuario
+          <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-main)', letterSpacing: '-0.02em', margin: 0 }}>
+            Nutra<span style={{ color: 'var(--emerald-400)' }}>Live</span>
           </h2>
-          <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
-            Accede al Escudo Hepático & Plataforma Terapéutica NutraLive
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            Escudo Hepático & Nutrición Terapéutica MASLD
           </p>
         </div>
 
         {/* ========================================================================= */}
         {/* BOTÓN OFICIAL: CONTINUAR CON GOOGLE                                      */}
         {/* ========================================================================= */}
-        <div style={{ marginBottom: '1.25rem' }}>
+        <div style={{ marginBottom: '1.1rem' }}>
           <button
             type="button"
             onClick={() => setModalGoogle(true)}
@@ -241,7 +287,7 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
               background: '#ffffff',
               border: '1px solid #dadce0',
               color: '#3c4043',
-              fontSize: '0.96rem',
+              fontSize: '0.95rem',
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
@@ -267,10 +313,10 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          margin: '1.25rem 0',
+          gap: '10px',
+          margin: '1rem 0',
           color: 'var(--text-dim)',
-          fontSize: '0.78rem',
+          fontSize: '0.75rem',
           fontWeight: 700,
           textTransform: 'uppercase',
           letterSpacing: '0.05em'
@@ -280,7 +326,7 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
           <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
         </div>
 
-        {/* Pestañas: Crear Cuenta vs Iniciar Sesión */}
+        {/* Pestañas: Iniciar Sesión vs Crear Cuenta */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
@@ -288,26 +334,8 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
           background: 'var(--bg-secondary)',
           padding: '4px',
           borderRadius: 'var(--radius-md)',
-          marginBottom: '1.25rem'
+          marginBottom: '1rem'
         }}>
-          <button
-            type="button"
-            onClick={() => { setTabAuth('crear_cuenta'); setErrorMsg(''); }}
-            style={{
-              padding: '9px 12px',
-              borderRadius: 'var(--radius-sm)',
-              fontSize: '0.86rem',
-              fontWeight: 800,
-              border: 'none',
-              background: tabAuth === 'crear_cuenta' ? 'var(--emerald-500)' : 'transparent',
-              color: tabAuth === 'crear_cuenta' ? '#ffffff' : 'var(--text-muted)',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            Crear Cuenta Nueva
-          </button>
-
           <button
             type="button"
             onClick={() => { setTabAuth('iniciar_sesion'); setErrorMsg(''); }}
@@ -325,15 +353,33 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
           >
             Iniciar Sesión
           </button>
+
+          <button
+            type="button"
+            onClick={() => { setTabAuth('crear_cuenta'); setErrorMsg(''); }}
+            style={{
+              padding: '9px 12px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: '0.86rem',
+              fontWeight: 800,
+              border: 'none',
+              background: tabAuth === 'crear_cuenta' ? 'var(--emerald-500)' : 'transparent',
+              color: tabAuth === 'crear_cuenta' ? '#ffffff' : 'var(--text-muted)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            Crear Cuenta
+          </button>
         </div>
 
-        {/* Mensaje de Error */}
+        {/* Mensaje de Error Amigable */}
         {errorMsg && (
           <div style={{
             background: 'var(--red-bg)',
             border: '1px solid var(--red-alert)',
             color: 'var(--red-alert)',
-            padding: '9px 12px',
+            padding: '8px 12px',
             borderRadius: 'var(--radius-sm)',
             fontSize: '0.82rem',
             marginBottom: '1rem',
@@ -343,139 +389,253 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
           </div>
         )}
 
-        {/* Selector de Rol: Familia vs Especialista */}
-        <div style={{ marginBottom: '1.1rem' }}>
-          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.35rem', letterSpacing: '0.04em' }}>
-            Selecciona tu perfil de acceso:
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => setRolUsuario('familia')}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                border: `1px solid ${rolUsuario === 'familia' ? 'var(--emerald-400)' : 'var(--border-color)'}`,
-                background: rolUsuario === 'familia' ? 'var(--emerald-glow)' : 'var(--bg-secondary)',
-                color: rolUsuario === 'familia' ? 'var(--emerald-400)' : 'var(--text-main)',
-                cursor: 'pointer'
-              }}
-            >
-              👨‍👩‍👧 Tutor / Familia
-            </button>
-            <button
-              type="button"
-              onClick={() => setRolUsuario('especialista')}
-              style={{
-                padding: '8px 10px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                border: `1px solid ${rolUsuario === 'especialista' ? 'var(--emerald-400)' : 'var(--border-color)'}`,
-                background: rolUsuario === 'especialista' ? 'var(--emerald-glow)' : 'var(--bg-secondary)',
-                color: rolUsuario === 'especialista' ? 'var(--emerald-400)' : 'var(--text-main)',
-                cursor: 'pointer'
-              }}
-            >
-              🩺 Especialista / Médico
-            </button>
-          </div>
-        </div>
-
         {/* ========================================================================= */}
-        {/* FORMULARIO A: CREAR CUENTA NUEVA                                          */}
+        {/* FORMULARIO A: INICIAR SESIÓN CON CORREO EXISTENTE                        */}
         {/* ========================================================================= */}
-        {tabAuth === 'crear_cuenta' && (
-          <form onSubmit={manejarCreacionCuenta}>
-            <div style={{ marginBottom: '0.85rem' }}>
-              <label htmlFor="reg-nombre" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                Tu Nombre Completo:
+        {tabAuth === 'iniciar_sesion' && (
+          <form onSubmit={manejarInicioSesion} noValidate>
+            <div style={{ marginBottom: '0.9rem' }}>
+              <label htmlFor="login-email-input" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.3rem' }}>
+                Correo Electrónico:
               </label>
               <input
-                id="reg-nombre"
-                type="text"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej: Mauricio Uribe"
-                required
+                id="login-email-input"
+                name="email"
+                type="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value.replace(/\s+/g, ''))}
+                placeholder="ejemplo@correo.com"
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
+                  padding: '11px 14px',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)',
                   background: 'var(--bg-secondary)',
                   color: 'var(--text-main)',
-                  fontSize: '0.9rem',
-                  outline: 'none'
+                  WebkitTextFillColor: 'var(--text-main)',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  colorScheme: 'dark light'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
+              <label htmlFor="login-pass-input" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.3rem' }}>
+                Contraseña:
+              </label>
+              <input
+                id="login-pass-input"
+                name="password"
+                type={mostrarPasswordLogin ? 'text' : 'password'}
+                autoComplete="current-password"
+                autoCapitalize="none"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="••••••••"
+                style={{
+                  width: '100%',
+                  padding: '11px 40px 11px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-main)',
+                  WebkitTextFillColor: 'var(--text-main)',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  colorScheme: 'dark light'
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarPasswordLogin(!mostrarPasswordLogin)}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '34px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-dim)',
+                  cursor: 'pointer',
+                  fontSize: '1rem'
+                }}
+                title={mostrarPasswordLogin ? 'Ocultar' : 'Mostrar'}
+              >
+                {mostrarPasswordLogin ? '👁️' : '🔒'}
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              style={{
+                width: '100%',
+                padding: '13px',
+                borderRadius: 'var(--radius-md)',
+                background: 'linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%)',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '0.98rem',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px var(--emerald-glow)',
+                marginBottom: '0.75rem'
+              }}
+            >
+              Iniciar Sesión en NutraLive →
+            </button>
+          </form>
+        )}
+
+        {/* ========================================================================= */}
+        {/* FORMULARIO B: CREAR CUENTA NUEVA                                          */}
+        {/* ========================================================================= */}
+        {tabAuth === 'crear_cuenta' && (
+          <form onSubmit={manejarCreacionCuenta} noValidate>
+            {/* Selector de Rol */}
+            <div style={{ marginBottom: '0.9rem' }}>
+              <label style={{ display: 'block', fontSize: '0.76rem', fontWeight: 800, color: 'var(--text-dim)', textTransform: 'uppercase', marginBottom: '0.3rem', letterSpacing: '0.04em' }}>
+                Tipo de Perfil:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setRolUsuario('familia')}
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    border: `1px solid ${rolUsuario === 'familia' ? 'var(--emerald-400)' : 'var(--border-color)'}`,
+                    background: rolUsuario === 'familia' ? 'var(--emerald-glow)' : 'var(--bg-secondary)',
+                    color: rolUsuario === 'familia' ? 'var(--emerald-400)' : 'var(--text-main)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  👨‍👩‍👧 Tutor / Familia
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRolUsuario('especialista')}
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    border: `1px solid ${rolUsuario === 'especialista' ? 'var(--emerald-400)' : 'var(--border-color)'}`,
+                    background: rolUsuario === 'especialista' ? 'var(--emerald-glow)' : 'var(--bg-secondary)',
+                    color: rolUsuario === 'especialista' ? 'var(--emerald-400)' : 'var(--text-main)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🩺 Especialista / Médico
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '0.85rem' }}>
+              <label htmlFor="reg-nombre-input" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                Tu Nombre Completo:
+              </label>
+              <input
+                id="reg-nombre-input"
+                name="name"
+                type="text"
+                autoComplete="name"
+                autoCapitalize="words"
+                value={regNombre}
+                onChange={(e) => setRegNombre(e.target.value)}
+                placeholder="Ej: Mauricio Uribe"
+                style={{
+                  width: '100%',
+                  padding: '11px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-main)',
+                  WebkitTextFillColor: 'var(--text-main)',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  colorScheme: 'dark light'
                 }}
               />
             </div>
 
             <div style={{ marginBottom: '0.85rem' }}>
-              <label htmlFor="reg-email" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+              <label htmlFor="reg-email-input" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
                 Correo Electrónico:
               </label>
               <input
-                id="reg-email"
+                id="reg-email-input"
+                name="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+                value={regEmail}
+                onChange={(e) => setRegEmail(e.target.value.replace(/\s+/g, ''))}
                 placeholder="ejemplo@correo.com"
-                required
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
+                  padding: '11px 14px',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)',
                   background: 'var(--bg-secondary)',
                   color: 'var(--text-main)',
-                  fontSize: '0.9rem',
-                  outline: 'none'
+                  WebkitTextFillColor: 'var(--text-main)',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  colorScheme: 'dark light'
                 }}
               />
             </div>
 
             <div style={{ marginBottom: '0.9rem', position: 'relative' }}>
-              <label htmlFor="reg-password" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+              <label htmlFor="reg-pass-input" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
                 Contraseña (mínimo 6 caracteres):
               </label>
               <input
-                id="reg-password"
-                type={mostrarPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                id="reg-pass-input"
+                name="password"
+                type={mostrarPasswordReg ? 'text' : 'password'}
+                autoComplete="new-password"
+                autoCapitalize="none"
+                value={regPassword}
+                onChange={(e) => setRegPassword(e.target.value)}
                 placeholder="••••••••"
-                required
-                minLength="6"
                 style={{
                   width: '100%',
-                  padding: '10px 36px 10px 12px',
+                  padding: '11px 40px 11px 14px',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)',
                   background: 'var(--bg-secondary)',
                   color: 'var(--text-main)',
-                  fontSize: '0.9rem',
-                  outline: 'none'
+                  WebkitTextFillColor: 'var(--text-main)',
+                  fontSize: '1rem',
+                  outline: 'none',
+                  colorScheme: 'dark light'
                 }}
               />
               <button
                 type="button"
-                onClick={() => setMostrarPassword(!mostrarPassword)}
+                onClick={() => setMostrarPasswordReg(!mostrarPasswordReg)}
                 style={{
                   position: 'absolute',
-                  right: '10px',
+                  right: '12px',
                   top: '32px',
                   background: 'transparent',
                   border: 'none',
                   color: 'var(--text-dim)',
                   cursor: 'pointer',
-                  fontSize: '0.9rem'
+                  fontSize: '1rem'
                 }}
-                title={mostrarPassword ? 'Ocultar' : 'Mostrar'}
+                title={mostrarPasswordReg ? 'Ocultar' : 'Mostrar'}
               >
-                {mostrarPassword ? '👁️' : '🔒'}
+                {mostrarPasswordReg ? '👁️' : '🔒'}
               </button>
             </div>
 
@@ -483,12 +643,12 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
             {rolUsuario === 'familia' && (
               <div style={{
                 background: 'rgba(16, 185, 129, 0.05)',
-                padding: '10px',
+                padding: '10px 12px',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-emerald)',
                 marginBottom: '1rem'
               }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--emerald-400)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                <div style={{ fontSize: '0.74rem', fontWeight: 800, color: 'var(--emerald-400)', textTransform: 'uppercase', marginBottom: '6px' }}>
                   Datos del Paciente a Proteger:
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px', marginBottom: '6px' }}>
@@ -496,15 +656,14 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
                     type="text"
                     value={nombrePaciente}
                     onChange={(e) => setNombrePaciente(e.target.value)}
-                    placeholder="Nombre (ej: Sofía)"
-                    required
+                    placeholder="Nombre (ej: Agustina)"
                     style={{
                       padding: '8px 10px',
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--border-color)',
                       background: 'var(--bg-card)',
                       color: 'var(--text-main)',
-                      fontSize: '0.85rem'
+                      fontSize: '0.88rem'
                     }}
                   />
                   <input
@@ -514,14 +673,13 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
                     placeholder="Edad"
                     min="1"
                     max="99"
-                    required
                     style={{
                       padding: '8px 10px',
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--border-color)',
                       background: 'var(--bg-card)',
                       color: 'var(--text-main)',
-                      fontSize: '0.85rem'
+                      fontSize: '0.88rem'
                     }}
                   />
                 </div>
@@ -535,7 +693,7 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
                     border: '1px solid var(--border-color)',
                     background: 'var(--bg-card)',
                     color: 'var(--text-main)',
-                    fontSize: '0.8rem'
+                    fontSize: '0.82rem'
                   }}
                 >
                   <option value="Esteatosis Hepática (MASLD Grado 1)">Hígado Graso (MASLD Grado 1)</option>
@@ -549,11 +707,11 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
             {/* Matrícula en modo especialista */}
             {rolUsuario === 'especialista' && (
               <div style={{ marginBottom: '1rem' }}>
-                <label htmlFor="reg-matricula" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
+                <label htmlFor="reg-mat-input" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
                   Matrícula o Código Profesional (Opcional):
                 </label>
                 <input
-                  id="reg-matricula"
+                  id="reg-mat-input"
                   type="text"
                   value={matricula}
                   onChange={(e) => setMatricula(e.target.value)}
@@ -575,7 +733,7 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
               type="submit"
               style={{
                 width: '100%',
-                padding: '12px',
+                padding: '13px',
                 borderRadius: 'var(--radius-md)',
                 background: 'linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%)',
                 color: '#ffffff',
@@ -592,114 +750,30 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
           </form>
         )}
 
-        {/* ========================================================================= */}
-        {/* FORMULARIO B: INICIAR SESIÓN CON CORREO EXISTENTE                        */}
-        {/* ========================================================================= */}
-        {tabAuth === 'iniciar_sesion' && (
-          <form onSubmit={manejarInicioSesion}>
-            <div style={{ marginBottom: '0.9rem' }}>
-              <label htmlFor="login-email" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                Correo Electrónico:
-              </label>
-              <input
-                id="login-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="ejemplo@correo.com"
-                required
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-secondary)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.9rem',
-                  outline: 'none'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '1.25rem', position: 'relative' }}>
-              <label htmlFor="login-pass" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.25rem' }}>
-                Contraseña:
-              </label>
-              <input
-                id="login-pass"
-                type={mostrarPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                style={{
-                  width: '100%',
-                  padding: '10px 36px 10px 12px',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-secondary)',
-                  color: 'var(--text-main)',
-                  fontSize: '0.9rem',
-                  outline: 'none'
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setMostrarPassword(!mostrarPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '10px',
-                  top: '32px',
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-dim)',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem'
-                }}
-                title={mostrarPassword ? 'Ocultar' : 'Mostrar'}
-              >
-                {mostrarPassword ? '👁️' : '🔒'}
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%)',
-                color: '#ffffff',
-                fontWeight: 800,
-                fontSize: '0.98rem',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow: '0 4px 14px var(--emerald-glow)',
-                marginBottom: '0.75rem'
-              }}
-            >
-              Iniciar Sesión en NutraLive →
-            </button>
-          </form>
-        )}
-
-        {/* Acceso Rápido Demostrativo */}
-        <div style={{ textAlign: 'center', paddingTop: '0.6rem', borderTop: '1px solid var(--border-color)' }}>
+        {/* Acceso Rápido Demostrativo como Invitado (Sin Barreras) */}
+        <div style={{ textAlign: 'center', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
           <button
             type="button"
-            onClick={ingresoRapidoDemo}
+            onClick={ingresoRapidoInvitado}
             style={{
-              fontSize: '0.8rem',
+              width: '100%',
+              fontSize: '0.84rem',
               color: 'var(--emerald-400)',
-              fontWeight: 700,
-              padding: '6px 14px',
-              borderRadius: 'var(--radius-full)',
+              fontWeight: 800,
+              padding: '8px 14px',
+              borderRadius: 'var(--radius-md)',
               background: 'var(--emerald-glow)',
               border: '1px solid var(--border-emerald)',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease'
             }}
           >
-            ⚡ Acceso Rápido Demostrativo (Caso de Sofía en 1 Clic)
+            <span>⚡</span>
+            <span>Continuar como Invitado (Caso Clínico de Agustina en 1 Clic)</span>
           </button>
         </div>
       </div>
@@ -743,14 +817,14 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
                   Acceder con Google
                 </h3>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  Elige o confirma tu cuenta para NutraLive
+                  Conecta tu identidad para NutraLive
                 </div>
               </div>
             </div>
 
-            {/* Opción 1: Cuenta Detectada del Creador */}
+            {/* Opción 1: Conectar en 1 Clic con Cuenta Verificada */}
             <div
-              onClick={() => iniciarConGoogle('mauricio.uribe@gmail.com', 'Mauricio Uribe Maldonado')}
+              onClick={() => iniciarConGoogle('familia.nutralive@gmail.com', 'Usuario Google NutraLive')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -778,14 +852,14 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
                 justifyContent: 'center',
                 fontSize: '1rem'
               }}>
-                M
+                G
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-main)' }}>
-                  Mauricio Uribe Maldonado
+                  Conexión Rápida Google
                 </div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  mauricio.uribe@gmail.com
+                  Acceder con tu cuenta activa del navegador
                 </div>
               </div>
               <span style={{ fontSize: '0.75rem', color: 'var(--emerald-400)', fontWeight: 700 }}>
@@ -802,7 +876,7 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
               marginBottom: '1.25rem'
             }}>
               <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px' }}>
-                O ingresa con otra cuenta de Google:
+                O ingresa con tu correo de Google:
               </div>
               <input
                 type="text"
@@ -811,35 +885,41 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
                 onChange={(e) => setGoogleNombreManual(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '8px 10px',
+                  padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)',
                   background: 'var(--bg-card)',
                   color: 'var(--text-main)',
-                  fontSize: '0.85rem',
-                  marginBottom: '6px'
+                  WebkitTextFillColor: 'var(--text-main)',
+                  fontSize: '0.9rem',
+                  marginBottom: '8px',
+                  outline: 'none',
+                  colorScheme: 'dark light'
                 }}
               />
               <input
                 type="email"
                 placeholder="tu.correo@gmail.com"
                 value={googleEmailManual}
-                onChange={(e) => setGoogleEmailManual(e.target.value)}
+                onChange={(e) => setGoogleEmailManual(e.target.value.replace(/\s+/g, ''))}
                 style={{
                   width: '100%',
-                  padding: '8px 10px',
+                  padding: '9px 12px',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)',
                   background: 'var(--bg-card)',
                   color: 'var(--text-main)',
-                  fontSize: '0.85rem',
-                  marginBottom: '8px'
+                  WebkitTextFillColor: 'var(--text-main)',
+                  fontSize: '0.9rem',
+                  marginBottom: '10px',
+                  outline: 'none',
+                  colorScheme: 'dark light'
                 }}
               />
               <button
                 type="button"
                 onClick={() => {
-                  if (!googleEmailManual.trim()) {
+                  if (!googleEmailManual.trim() || !googleEmailManual.includes('@')) {
                     setErrorMsg('Ingresa un correo de Google válido');
                     return;
                   }
@@ -847,12 +927,12 @@ export default function LobbyNutraLive({ onVerificacionExitosa }) {
                 }}
                 style={{
                   width: '100%',
-                  padding: '9px',
+                  padding: '10px',
                   borderRadius: 'var(--radius-sm)',
                   background: 'var(--emerald-500)',
                   color: '#ffffff',
                   fontWeight: 700,
-                  fontSize: '0.85rem',
+                  fontSize: '0.88rem',
                   border: 'none',
                   cursor: 'pointer'
                 }}

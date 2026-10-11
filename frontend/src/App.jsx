@@ -130,11 +130,38 @@ export default function App() {
     setMostrarLobby(true);
   };
 
+  const handleCerrarLobby = () => {
+    if (!usuarioActivo) {
+      const usuarioInvitado = {
+        id: 'usr-invitado',
+        metodoAuth: 'invitado',
+        nombre: 'Familia Agustina',
+        email: 'invitado@nutralive.health',
+        avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Agustina&backgroundColor=10b981',
+        tipo: 'familia',
+        rolTitulo: 'Tutor Pediátrico (Caso Clínico de Agustina)',
+        paciente: {
+          nombre: 'Agustina',
+          edad: 9,
+          diagnostico: 'Esteatosis Hepática (MASLD Grado 1)'
+        },
+        fechaVerificacion: new Date().toISOString(),
+        cuentaVerificada: true
+      };
+      manejarVerificacionExitosa(usuarioInvitado);
+    } else {
+      setMostrarLobby(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* 1. Verificación Inicial de Usuario (Prioritario e Inmediato en Segundo 0 si no hay sesión) */}
       {(!usuarioActivo || mostrarLobby) && (
-        <LobbyNutraLive onVerificacionExitosa={manejarVerificacionExitosa} />
+        <LobbyNutraLive 
+          onVerificacionExitosa={manejarVerificacionExitosa}
+          onCerrar={handleCerrarLobby}
+        />
       )}
 
       {/* 2. Pre-pantalla animada de bienvenida solo si el usuario ya validó su sesión */}
