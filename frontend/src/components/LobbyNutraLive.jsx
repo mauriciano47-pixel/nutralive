@@ -653,10 +653,14 @@ export default function LobbyNutraLive({ onVerificacionExitosa, onCerrar }) {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '8px', marginBottom: '6px' }}>
                   <input
+                    id="nombre-paciente-input"
+                    name="nombrePaciente"
                     type="text"
+                    autoComplete="given-name"
                     value={nombrePaciente}
                     onChange={(e) => setNombrePaciente(e.target.value)}
                     placeholder="Nombre (ej: Agustina)"
+                    aria-label="Nombre del paciente a proteger"
                     style={{
                       padding: '8px 10px',
                       borderRadius: 'var(--radius-sm)',
@@ -667,12 +671,16 @@ export default function LobbyNutraLive({ onVerificacionExitosa, onCerrar }) {
                     }}
                   />
                   <input
+                    id="edad-paciente-input"
+                    name="edadPaciente"
                     type="number"
+                    autoComplete="off"
                     value={edadPaciente}
                     onChange={(e) => setEdadPaciente(e.target.value)}
                     placeholder="Edad"
                     min="1"
                     max="99"
+                    aria-label="Edad en años del paciente a proteger"
                     style={{
                       padding: '8px 10px',
                       borderRadius: 'var(--radius-sm)',
@@ -879,8 +887,12 @@ export default function LobbyNutraLive({ onVerificacionExitosa, onCerrar }) {
                 O ingresa con tu correo de Google:
               </div>
               <input
+                id="google-nombre-manual-input"
+                name="googleNombre"
                 type="text"
+                autoComplete="name"
                 placeholder="Tu Nombre (ej: Camila Soto)"
+                aria-label="Nombre completo para cuenta Google"
                 value={googleNombreManual}
                 onChange={(e) => setGoogleNombreManual(e.target.value)}
                 style={{
@@ -898,8 +910,15 @@ export default function LobbyNutraLive({ onVerificacionExitosa, onCerrar }) {
                 }}
               />
               <input
+                id="google-email-manual-input"
+                name="email"
                 type="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
                 placeholder="tu.correo@gmail.com"
+                aria-label="Correo electrónico Google"
                 value={googleEmailManual}
                 onChange={(e) => setGoogleEmailManual(e.target.value.replace(/\s+/g, ''))}
                 style={{

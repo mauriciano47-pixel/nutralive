@@ -1028,10 +1028,13 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
 
             {/* Inputs Ocultos para Captura con Cámara y Subida de Archivos */}
             <input
+              id="camera-capture-input"
+              name="cameraCapture"
               type="file"
               ref={cameraInputRef}
               accept="image/*"
               capture="environment"
+              aria-label="Captura de foto de etiqueta con cámara trasera"
               style={{ display: 'none' }}
               onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {
@@ -1040,9 +1043,12 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
               }}
             />
             <input
+              id="file-upload-input"
+              name="fileUpload"
               type="file"
               ref={uploadInputRef}
               accept="image/*"
+              aria-label="Subir foto de etiqueta desde almacenamiento"
               style={{ display: 'none' }}
               onChange={(e) => {
                 if (e.target.files && e.target.files[0]) {

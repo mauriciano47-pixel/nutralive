@@ -16,14 +16,15 @@ export default function ModalPlanesNutraLive({ isOpen, onClose, onSubscriptionCh
 
   const handleCheckout = (isSimulation = true) => {
     setIsProcessing(true);
+    const cleanEmail = email ? email.trim() : '';
     setTimeout(() => {
       if (isSimulation) {
-        const sub = activateSubscription(currentPlan.id, email || 'familia@nutralive.cl');
+        const sub = activateSubscription(currentPlan.id, cleanEmail || 'familia@nutralive.cl');
         setActivePlan(sub);
         if (onSubscriptionChanged) onSubscriptionChanged(sub);
         setIsProcessing(false);
       } else {
-        const url = generateStripeCheckoutUrl(currentPlan.id, email);
+        const url = generateStripeCheckoutUrl(currentPlan.id, cleanEmail);
         window.open(url, '_blank');
         setIsProcessing(false);
       }
@@ -243,10 +244,16 @@ export default function ModalPlanesNutraLive({ isOpen, onClose, onSubscriptionCh
             </label>
             <input
               id="customer-email-input"
+              name="email"
               type="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="ejemplo@correo.com"
+              aria-label="Correo de facturación para el recibo"
               style={{
                 width: '100%',
                 padding: '10px 12px',
