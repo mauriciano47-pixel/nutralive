@@ -86,6 +86,26 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
   const isLocalHost = typeof window !== 'undefined' && 
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
+  // BÚSQUEDA REACTIVA EN VIVO CON DEBOUNCE (As-You-Type)
+  useEffect(() => {
+    const termClean = searchTerm.trim();
+    if (termClean.length >= 2) {
+      const timer = setTimeout(() => {
+        // Ejecutar búsqueda clínica en segundo plano para que el resultado aparezca al instante
+        const catalogMatches = searchFoodCatalog(termClean, 'TODAS', 'ALL');
+        setSearchResults(catalogMatches);
+        const clinicalEval = classifyFoodSmart(termClean, '');
+        setResult(clinicalEval);
+        setHasSearched(true);
+      }, 250);
+      return () => clearTimeout(timer);
+    } else if (termClean.length === 0) {
+      setResult(null);
+      setHasSearched(false);
+      setSearchResults([]);
+    }
+  }, [searchTerm]);
+
   // Actualizar sugerencias reactivas mientras el usuario tipea
   const handleSearchInputChange = (e) => {
     const val = e.target.value;
@@ -502,7 +522,7 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
               </div>
 
               {/* Menú flotante de autocompletado en tiempo real */}
-              {showSuggestions && suggestions.length > 0 && (
+              {showSuggestions && searchTerm.trim().length >= 1 && (
                 <div style={{
                   position: 'absolute',
                   top: '100%',
@@ -514,20 +534,23 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
                   borderRadius: 'var(--radius-md)',
                   boxShadow: '0 12px 30px rgba(0,0,0,0.4)',
                   marginTop: '6px',
-                  maxHeight: '280px',
+                  maxHeight: '290px',
                   overflowY: 'auto'
                 }}>
-                  <div style={{
-                    padding: '6px 12px',
-                    fontSize: '0.72rem',
-                    fontWeight: 800,
-                    color: 'var(--emerald-400)',
-                    background: 'rgba(16, 185, 129, 0.08)',
-                    borderBottom: '1px solid var(--border-color)',
-                    textTransform: 'uppercase'
-                  }}>
-                    Coincidencias encontradas ({suggestions.length}) — Toca para clasificar:
-                  </div>
+                  {suggestions.length > 0 && (
+                    <div style={{
+                      padding: '6px 12px',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                      color: 'var(--emerald-400)',
+                      background: 'rgba(16, 185, 129, 0.08)',
+                      borderBottom: '1px solid var(--border-color)',
+                      textTransform: 'uppercase'
+                    }}>
+                      Coincidencias en catálogo clínico ({suggestions.length}):
+                    </div>
+                  )}
+
                   {suggestions.map((item) => {
                     const badgeColor = item.traffic_light === 'RED' ? '#ef4444' : item.traffic_light === 'YELLOW' ? '#f59e0b' : '#10b981';
                     return (
@@ -576,8 +599,87 @@ export default function SemaforoEscaneo({ apiBaseUrl }) {
                       </div>
                     );
                   })}
+
+                  {/* Opción instantánea para cualquier término escrito */}
+                  <div
+                    onClick={() => ejecutarBusqueda(searchTerm)}
+                    style={{
+                      padding: '11px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      background: 'rgba(16, 185, 129, 0.12)',
+                      cursor: 'pointer',
+                      fontWeight: 700,
+                      color: 'var(--emerald-400)',
+                      fontSize: '0.88rem'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.22)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(16, 185, 129, 0.12)'}
+                  >
+                    <span>⚡</span>
+                    <span>Evaluar y clasificar <strong>"{searchTerm.trim()}"</strong> con motor hepático →</span>
+                  </div>
                 </div>
               )}
+            </div>
+
+            {/* Atajos Rápidos de Alimentos Frecuentes (Chips de 1 toque) */}
+            <div style={{
+              marginTop: '12px',
+              paddingTop: '12px',
+              borderTop: '1px solid var(--border-color)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexWrap: 'wrap'
+            }}>
+              <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', fontWeight: 700, marginRight: '4px' }}>
+                💡 Pruebas rápidas con 1 toque:
+              </span>
+              {[
+                { label: '🍎 Manzana', term: 'Manzana' },
+                { label: '🥑 Palta', term: 'Palta' },
+                { label: '🥣 Avena', term: 'Avena' },
+                { label: '🥤 Coca Cola', term: 'Coca Cola' },
+                { label: '🍕 Pizza', term: 'Pizza' },
+                { label: '🍝 Fideos', term: 'Fideos' },
+                { label: '🌭 Completo', term: 'Completo' },
+                { label: '🍳 Huevo', term: 'Huevo' },
+                { label: '🥟 Empanada', term: 'Empanada' },
+                { label: '🐟 Salmón', term: 'Salmón' },
+                { label: '☕ Café', term: 'Café' }
+              ].map((chip) => (
+                <button
+                  key={chip.term}
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm(chip.term);
+                    ejecutarBusqueda(chip.term);
+                  }}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-main)',
+                    border: '1px solid var(--border-color)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--emerald-500)';
+                    e.currentTarget.style.color = 'var(--emerald-400)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                    e.currentTarget.style.color = 'var(--text-main)';
+                  }}
+                >
+                  {chip.label}
+                </button>
+              ))}
             </div>
           </div>
 

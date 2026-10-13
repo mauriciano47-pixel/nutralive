@@ -909,6 +909,130 @@ export const CLINICAL_FOOD_CATALOG = [
       product: 'Compota Rústica con Piel sin Azúcar',
       reasoning: 'Sustituto superior a compotas en sobre (pouches) procesadas con concentrados azucarados.'
     }
+  },
+  {
+    id: 'fideos-pastas-blancas',
+    name: 'Fideos / Pastas Blancas Refinadas',
+    brand: 'Pastas Comerciales de Trigo Blanco',
+    category: 'CEREALES Y TUBÉRCULOS',
+    traffic_light: 'YELLOW',
+    keywords: ['fideos', 'fideo', 'pasta', 'pastas', 'tallarines', 'espagueti', 'spaghetti', 'fideos blancos', 'macarrones'],
+    ingredients_raw: 'Sémola de trigo blanco refinado, agua (almidón desprovisto de salvado y germen).',
+    harmful_items: [
+      { name: 'Almidón Rápido de Alto Índice Glucémico', risk: 'YELLOW', mechanism: 'Se descompone velozmente en glucosa portal, estimulando la secreción aguda de insulina e inhibiendo la beta-oxidación de grasas.' }
+    ],
+    clinical_advice: 'En personas con esteatosis hepática (MASLD), consumir pastas blancas al dente y en porciones controladas (~1 taza), siempre combinadas con abundante verdura verde y proteína magra.',
+    healthy_swap: {
+      product: 'Fideos Integrales de Grano Entero o Espaguetis de Legumbres (Lenteja/Garbanzo)',
+      reasoning: 'Triplican la fibra dietética, retardan el vaciamiento gástrico y aplanan la curva de glucemia hepática.'
+    }
+  },
+  {
+    id: 'ensalada-mixta-fresca',
+    name: 'Ensalada Fresca Mixta (Lechuga, Pepino, Rúcula y Tomate)',
+    brand: 'Preparación Casera / Fresca',
+    category: 'VERDURAS',
+    traffic_light: 'GREEN',
+    keywords: ['ensalada', 'ensaladas', 'lechuga', 'ensalada mixta', 'ensalada verde', 'pepino', 'tomate', 'rucula'],
+    ingredients_raw: 'Hojas verdes variadas, pepino con cáscara, tomate fresco, aderezo con aceite de oliva extra virgen y limón.',
+    harmful_items: [],
+    clinical_advice: 'Aporte masivo de fibra insoluble, agua biológica y polifenoles. Reduce la absorción de lípidos y fortalece la barrera del epitelio intestinal contra endotoxinas.',
+    healthy_swap: null
+  },
+  {
+    id: 'sandia-melon-fresca',
+    name: 'Sandía o Melón Fresco en Cubos',
+    brand: 'Fruta Natural de Temporada',
+    category: 'FRUTAS',
+    traffic_light: 'YELLOW',
+    keywords: ['sandia', 'melon', 'sandia fresca', 'tajada de sandia', 'fruta dulce'],
+    ingredients_raw: 'Pulpa de sandía fresca con agua y licopeno (alto índice glucémico con baja densidad calórica).',
+    harmful_items: [
+      { name: 'Carga Glucémica Concentrada en Ingestas Abundantes', risk: 'YELLOW', mechanism: 'Posee índice glucémico elevado (~72); si se come en porciones gigantes (>300g) produce picos transitorios de glucosa.' }
+    ],
+    clinical_advice: 'Fruta permitida pero en porción prudente (1 taza en cubos). No consumir como jugo licuado colado.',
+    healthy_swap: {
+      product: 'Sandía Entera en Cubos Acompañada de 1 Puñado de Nueces',
+      reasoning: 'Las grasas saludables de las nueces ralentizan la absorción de sus azúcares naturales.'
+    }
+  },
+  {
+    id: 'sandwich-ave-palta-integral',
+    name: 'Sándwich de Pollo / Ave con Palta en Pan Integral',
+    brand: 'Preparación Saludable Casera',
+    category: 'COMIDAS RÁPIDAS Y PLATOS',
+    traffic_light: 'GREEN',
+    keywords: ['sandwich', 'emparedado', 'pan con palta', 'pan con pollo', 'ave palta', 'sandwich integral'],
+    ingredients_raw: 'Pan 100% integral con semillas, pechuga de pollo desmenuzada al vapor, palta fresca machacada, tomate.',
+    harmful_items: [],
+    clinical_advice: 'Combinación perfecta para el hígado: fibra de grano entero, proteína magra de fácil asimilación y ácido oleico protector de la palta sin mayonesa industrial.',
+    healthy_swap: null
+  },
+  {
+    id: 'empanada-pino-horno-frita',
+    name: 'Empanada Tradicional de Pino o Queso',
+    brand: 'Panaderías / Comida Tradicional',
+    category: 'COMIDAS RÁPIDAS Y PLATOS',
+    traffic_light: 'RED',
+    keywords: ['empanada', 'empanadas', 'empanada de pino', 'empanada de queso', 'empanada frita', 'empanada al horno'],
+    ingredients_raw: 'Masa de harina refinada con manteca animal, carne con cebolla y condimentos o queso fundido graso, fritura en aceite reutilizado (si es frita).',
+    harmful_items: [
+      { name: 'Manteca Animal Saturada + Harina Blanca Refinada', risk: 'RED', mechanism: 'Combinación hiper-esteatógena que satura la beta-oxidación mitocondrial del hepatocito.' },
+      { name: 'Grasas de Fritura Termo-Oxidadas (en empanadas fritas)', risk: 'RED', mechanism: 'Eleva transaminasas y promueve estrés en el retículo endoplasmático hepático.' }
+    ],
+    clinical_advice: 'Alimento de alto impacto hepático. Si se consume excepcionalmente, preferir siempre al horno y nunca frita.',
+    healthy_swap: {
+      product: 'Empanada Rústica al Horno con Masa de Avena y Relleno de Verduras y Pollo Magro',
+      reasoning: 'Elimina las grasas saturadas de la manteca y añade fibra soluble hepatoprotectora.'
+    }
+  },
+  {
+    id: 'completo-italiano-fast-food',
+    name: 'Completo / Hot Dog Italiano con Mayonesa',
+    brand: 'Fuentes de Soda / Fast Food',
+    category: 'COMIDAS RÁPIDAS Y PLATOS',
+    traffic_light: 'RED',
+    keywords: ['completo', 'hot dog', 'completo italiano', 'pancho', 'choripan', 'vienesa con pan'],
+    ingredients_raw: 'Pan de completo refinado, salchicha/vienesa procesada con nitritos y sodio, mayonesa industrial, palta y tomate.',
+    harmful_items: [
+      { name: 'Embutido Ultraprocesado con Nitritos y Salmuera', risk: 'RED', mechanism: 'Favorece la formación de nitrosaminas proinflamatorias y sobrecarga endotelial.' },
+      { name: 'Mayonesa Industrial en Abundancia', risk: 'RED', mechanism: 'Aceites vegetales refinados ricos en omega-6 que alimentan la cascada inflamatoria hepática.' }
+    ],
+    clinical_advice: 'Evitar rigurosamente en niños o adultos con MASLD o enzimas hepáticas sobre el rango normal (ALT > 25 U/L).',
+    healthy_swap: {
+      product: 'Pechuga de Pavo o Pollo a la Plancha en Pan Integral con Palta Pura y Tomate',
+      reasoning: 'Aporta el mismo sabor reconfortante sin nitritos ni aceites refinados de mayonesa.'
+    }
+  },
+  {
+    id: 'helado-crema-industrial',
+    name: 'Helado Comercial de Crema o Paleta de Agua Azucarada',
+    brand: 'Heladerías Masivas / Supermercado',
+    category: 'DULCES, SALSAS Y SNACKS',
+    traffic_light: 'RED',
+    keywords: ['helado', 'helados', 'helado de chocolate', 'helado de crema', 'paleta de agua', 'barquillo'],
+    ingredients_raw: 'Agua, jarabe de maíz de alta fructosa (JMAF), azúcar, grasa vegetal hidrogenada o crema láctea, colorantes y estabilizantes.',
+    harmful_items: [
+      { name: 'Jarabe de Maíz de Alta Fructosa (JMAF) Líquido en Frío', risk: 'RED', mechanism: 'Activa la enzima lipogénica SREBP-1c en el hígado generando grasa ectópica inmediata.' },
+      { name: 'Grasas Vegetales Hidrogenadas / Saturadas', risk: 'RED', mechanism: 'Deterioran la sensibilidad a la insulina del hepatocito.' }
+    ],
+    clinical_advice: 'Un postre helado comercial aporta hasta 30g de azúcares libres de absorción exprés. Es un disparador directo de esteatosis hepática.',
+    healthy_swap: {
+      product: 'Helado Casero 100% Fruta: Plátano Congelado Batido con Frutillas y Semillas de Chía',
+      reasoning: 'Cremoso, helado y delicioso, con 0% azúcares refinados y repleto de fibra intacta.'
+    }
+  },
+  {
+    id: 'huevo-fresco-preparaciones',
+    name: 'Huevo de Campo Fresco (Duro, Pochado o a la Plancha)',
+    brand: 'Alimento Natural Puro',
+    category: 'CARNES Y HUEVOS',
+    traffic_light: 'GREEN',
+    keywords: ['huevo', 'huevos', 'huevo duro', 'huevo a la copa', 'huevo revuelto', 'tortilla de huevo'],
+    ingredients_raw: '100% huevo fresco de gallina (rico en colina, albúmina, luteína y zeaxantina).',
+    harmful_items: [],
+    clinical_advice: 'La colina de la yema es el nutriente maestro esencial para que el hígado exporte grasa vía VLDL. Su deficiencia es causa directa de hígado graso.',
+    healthy_swap: null
   }
 ];
 
