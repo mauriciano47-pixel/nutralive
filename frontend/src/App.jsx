@@ -25,12 +25,47 @@ export default function App() {
   // Control de Pre-pantalla de 3 segundos
   const [mostrarSplash, setMostrarSplash] = useState(true);
 
+// Sanitizadores contra Client-Side Storage Poisoning (SonarCloud S6079/S5147)
+function sanitizarUsuario(u) {
+  if (!u || typeof u !== 'object') return null;
+  return {
+    id: String(u.id || '').slice(0, 64),
+    metodoAuth: String(u.metodoAuth || 'local').slice(0, 32),
+    nombre: String(u.nombre || '').slice(0, 100),
+    email: String(u.email || '').slice(0, 100),
+    avatar: String(u.avatar || '').startsWith('https://') ? String(u.avatar).slice(0, 200) : '',
+    tipo: String(u.tipo || 'familia').slice(0, 32),
+    rolTitulo: String(u.rolTitulo || '').slice(0, 100),
+    paciente: {
+      nombre: String(u.paciente?.nombre || '').slice(0, 100),
+      edad: Number(u.paciente?.edad) || 0,
+      diagnostico: String(u.paciente?.diagnostico || '').slice(0, 120),
+    },
+    fechaVerificacion: String(u.fechaVerificacion || new Date().toISOString()).slice(0, 40),
+    cuentaVerificada: Boolean(u.cuentaVerificada),
+  };
+}
+
+function sanitizarLogs(logs) {
+  if (!Array.isArray(logs)) return INITIAL_LOGS;
+  return logs.slice(0, 100).map((l, idx) => ({
+    id: Number(l.id) || idx + 1,
+    date: String(l.date || '').slice(0, 10),
+    alt_tgp: Number(l.alt_tgp) || 0,
+    ast_tgo: Number(l.ast_tgo) || 0,
+    ggt: Number(l.ggt) || 0,
+    weight_kg: Number(l.weight_kg) || 0,
+    notes: String(l.notes || '').slice(0, 250),
+    adherence: Number(l.adherence) || 0,
+  }));
+}
+
   // Control de Verificación de Usuario Inicial (Google o Creación de Cuenta)
   const [usuarioActivo, setUsuarioActivo] = useState(() => {
     try {
       const guardado = localStorage.getItem('nutralive_usuario_sesion');
       if (guardado) {
-        const parsed = JSON.parse(guardado);
+        const parsed = sanitizarUsuario(JSON.parse(guardado));
         if (parsed && parsed.cuentaVerificada) {
           return parsed;
         }
@@ -47,16 +82,17 @@ export default function App() {
       const guardados = localStorage.getItem('nutralive_metabolic_logs');
       if (guardados) {
         const parsed = JSON.parse(guardados);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return sanitizarLogs(parsed);
       }
     } catch {}
     return INITIAL_LOGS;
   });
 
   const handleActualizarLogs = (nuevosLogs) => {
-    setLogs(nuevosLogs);
+    const logsSeguros = sanitizarLogs(nuevosLogs);
+    setLogs(logsSeguros);
     try {
-      localStorage.setItem('nutralive_metabolic_logs', JSON.stringify(nuevosLogs));
+      localStorage.setItem('nutralive_metabolic_logs', JSON.stringify(logsSeguros));
     } catch {}
   };
 
@@ -109,9 +145,12 @@ export default function App() {
   };
 
   const manejarVerificacionExitosa = (nuevoUsuario) => {
-    setUsuarioActivo(nuevoUsuario);
+    const usuarioSeguro = sanitizarUsuario(nuevoUsuario);
+    setUsuarioActivo(usuarioSeguro);
     try {
-      localStorage.setItem('nutralive_usuario_sesion', JSON.stringify(nuevoUsuario));
+      if (usuarioSeguro) {
+        localStorage.setItem('nutralive_usuario_sesion', JSON.stringify(usuarioSeguro));
+      }
     } catch {
       // Ignorar error de almacenamiento
     }
