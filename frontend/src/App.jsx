@@ -135,8 +135,8 @@ function sanitizarLogs(logs) {
       }
     }
 
-    checkBackend();
-    const interval = setInterval(checkBackend, 15000);
+    void checkBackend();
+    const interval = setInterval(() => { void checkBackend(); }, 15000);
     return () => clearInterval(interval);
   }, []);
 

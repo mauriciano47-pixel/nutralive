@@ -122,14 +122,18 @@ export function activateSubscription(planId, customerEmail = 'familia@nutralive.
   const durationDays = plan.billingCycle === 'annual' ? 365 : 30;
   const expiresAt = Date.now() + durationDays * 24 * 60 * 60 * 1000;
 
+  const cleanEmail = typeof customerEmail === 'string'
+    ? customerEmail.trim().toLowerCase().slice(0, 100)
+    : 'familia@nutralive.cl';
+
   const subscription = {
     isActive: true,
-    tier: plan.tier,
-    planId: plan.id,
-    planName: plan.name,
-    customerEmail,
-    priceUsd: plan.priceUsd,
-    billingCycle: plan.billingCycle,
+    tier: String(plan.tier || 'FAMILY').slice(0, 20),
+    planId: String(plan.id || '').slice(0, 40),
+    planName: String(plan.name || '').slice(0, 60),
+    customerEmail: cleanEmail,
+    priceUsd: Number(plan.priceUsd) || 0,
+    billingCycle: String(plan.billingCycle || 'annual').slice(0, 20),
     activatedAt: Date.now(),
     expiresAt,
     simulatedStripeInvoiceId: `in_nutra_${Date.now()}`

@@ -47,13 +47,28 @@ export default function BitacoraMarcadores({ apiBaseUrl, logs: propLogs, onActua
 
   const logs = propLogs || internalLogs;
 
+  const sanitizarLogs = (lista) => {
+    if (!Array.isArray(lista)) return [];
+    return lista.slice(0, 100).map((l, idx) => ({
+      id: Number(l.id) || idx + 1,
+      date: String(l.date || '').slice(0, 10),
+      alt_tgp: Number(l.alt_tgp) || 0,
+      ast_tgo: Number(l.ast_tgo) || 0,
+      ggt: Number(l.ggt) || 0,
+      weight_kg: Number(l.weight_kg) || 0,
+      notes: String(l.notes || '').slice(0, 250),
+      adherence: Number(l.adherence) || 0,
+    }));
+  };
+
   const actualizarLogsState = (nuevosLogs) => {
-    setInternalLogs(nuevosLogs);
+    const logsSeguros = sanitizarLogs(nuevosLogs);
+    setInternalLogs(logsSeguros);
     try {
-      localStorage.setItem('nutralive_metabolic_logs', JSON.stringify(nuevosLogs));
+      localStorage.setItem('nutralive_metabolic_logs', JSON.stringify(logsSeguros));
     } catch {}
     if (onActualizarLogs) {
-      onActualizarLogs(nuevosLogs);
+      onActualizarLogs(logsSeguros);
     }
   };
 
@@ -85,7 +100,7 @@ export default function BitacoraMarcadores({ apiBaseUrl, logs: propLogs, onActua
         setLoading(false);
       }
     }
-    cargarLogs();
+    void cargarLogs();
   }, [apiBaseUrl]);
 
   const handleAgregarControl = (e) => {
