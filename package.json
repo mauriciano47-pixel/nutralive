@@ -1,0 +1,21 @@
+{
+  "name": "nutralive-workspace",
+  "version": "1.6.0",
+  "private": true,
+  "description": "NutraLive — Nutrición Clínica Terapéutica, Escudo Hepático y Reversión de MASLD",
+  "scripts": {
+    "test": "npm --prefix frontend test",
+    "build": "npm --prefix frontend run build",
+    "deploy:gh": "npm --prefix frontend run deploy",
+    "ship": "powershell -ExecutionPolicy Bypass -File ./ship.ps1"
+  },
+  "keywords": [
+    "nutricion-clinica",
+    "masld",
+    "higado-graso",
+    "pediatria",
+    "healthtech"
+  ],
+  "author": "Mauricio Uribe Maldonado",
+  "license": "Proprietary"
+}
