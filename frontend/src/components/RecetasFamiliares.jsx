@@ -232,14 +232,24 @@ export default function RecetasFamiliares() {
         {filtradas.map((r) => (
           <div
             key={r.id}
+            role="button"
+            tabIndex={0}
             onClick={() => setSelectedReceta(r)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setSelectedReceta(r);
+              }
+            }}
+            aria-label={`Seleccionar receta ${r.title}`}
             style={{
               background: selectedReceta.id === r.id ? 'var(--bg-secondary)' : 'var(--bg-card)',
               border: `2px solid ${selectedReceta.id === r.id ? 'var(--emerald-500)' : 'var(--border-color)'}`,
               borderRadius: 'var(--radius-lg)',
               padding: '1.25rem',
               cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              textAlign: 'left'
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>

@@ -128,12 +128,12 @@ export function activateSubscription(planId, customerEmail = 'familia@nutralive.
 
   const subscription = {
     isActive: true,
-    tier: String(plan.tier || 'FAMILY').slice(0, 20),
-    planId: String(plan.id || '').slice(0, 40),
-    planName: String(plan.name || '').slice(0, 60),
-    customerEmail: cleanEmail,
+    tier: plan.tier === 'CLINICAL' ? 'CLINICAL' : 'FAMILY',
+    planId: String(plan.id || 'family_annual').slice(0, 40),
+    planName: String(plan.name || 'Plan Familiar').slice(0, 60),
+    customerEmail: 'familia@nutralive.cl',
     priceUsd: Number(plan.priceUsd) || 0,
-    billingCycle: String(plan.billingCycle || 'annual').slice(0, 20),
+    billingCycle: plan.billingCycle === 'monthly' ? 'monthly' : 'annual',
     activatedAt: Date.now(),
     expiresAt,
     simulatedStripeInvoiceId: `in_nutra_${Date.now()}`
@@ -145,7 +145,7 @@ export function activateSubscription(planId, customerEmail = 'familia@nutralive.
     // Si localStorage está bloqueado, mantiene en memoria
   }
 
-  return subscription;
+  return { ...subscription, customerEmail: cleanEmail };
 }
 
 /**

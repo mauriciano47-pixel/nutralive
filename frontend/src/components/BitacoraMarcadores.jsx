@@ -110,10 +110,10 @@ export default function BitacoraMarcadores({ apiBaseUrl, logs: propLogs, onActua
     const nuevoItem = {
       id: Date.now(),
       date: nuevoControl.date,
-      alt_tgp: parseFloat(nuevoControl.alt_tgp),
-      ast_tgo: nuevoControl.ast_tgo ? parseFloat(nuevoControl.ast_tgo) : null,
-      ggt: nuevoControl.ggt ? parseFloat(nuevoControl.ggt) : null,
-      weight_kg: nuevoControl.weight_kg ? parseFloat(nuevoControl.weight_kg) : null,
+      alt_tgp: Number.parseFloat(nuevoControl.alt_tgp),
+      ast_tgo: nuevoControl.ast_tgo ? Number.parseFloat(nuevoControl.ast_tgo) : null,
+      ggt: nuevoControl.ggt ? Number.parseFloat(nuevoControl.ggt) : null,
+      weight_kg: nuevoControl.weight_kg ? Number.parseFloat(nuevoControl.weight_kg) : null,
       notes: nuevoControl.notes || 'Control registrado por la familia.',
       adherence: 95
     };

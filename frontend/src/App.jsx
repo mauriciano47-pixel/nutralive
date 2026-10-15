@@ -65,9 +65,25 @@ function sanitizarLogs(logs) {
     try {
       const guardado = localStorage.getItem('nutralive_usuario_sesion');
       if (guardado) {
-        const parsed = sanitizarUsuario(JSON.parse(guardado));
+        const parsed = JSON.parse(guardado);
         if (parsed && parsed.cuentaVerificada) {
-          return parsed;
+          const esEspecialista = parsed.tipo === 'especialista';
+          return {
+            id: 'usr-local',
+            metodoAuth: parsed.metodoAuth === 'google' ? 'google' : 'email',
+            nombre: esEspecialista ? 'Especialista Clínico' : 'Tutor Familiar',
+            email: 'familia@nutralive.cl',
+            avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=NutraLive&backgroundColor=10b981',
+            tipo: esEspecialista ? 'especialista' : 'familia',
+            rolTitulo: esEspecialista ? 'Especialista Clínico Verificado' : 'Tutor Familiar',
+            paciente: {
+              nombre: 'Agustina',
+              edad: 9,
+              diagnostico: 'Esteatosis Hepática (MASLD Grado 1)',
+            },
+            fechaVerificacion: new Date().toISOString(),
+            cuentaVerificada: true,
+          };
         }
       }
       return null;
@@ -149,7 +165,13 @@ function sanitizarLogs(logs) {
     setUsuarioActivo(usuarioSeguro);
     try {
       if (usuarioSeguro) {
-        localStorage.setItem('nutralive_usuario_sesion', JSON.stringify(usuarioSeguro));
+        const sesionSegura = {
+          metodoAuth: usuarioSeguro.metodoAuth === 'google' ? 'google' : 'email',
+          tipo: usuarioSeguro.tipo === 'especialista' ? 'especialista' : 'familia',
+          cuentaVerificada: true,
+          ts: Date.now()
+        };
+        localStorage.setItem('nutralive_usuario_sesion', JSON.stringify(sesionSegura));
       }
     } catch {
       // Ignorar error de almacenamiento
