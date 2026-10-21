@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { STRIPE_PLANS, getSubscriptionState, activateSubscription, cancelSubscription, generateStripeCheckoutUrl } from '../utils/stripeService';
 
 export default function ModalPlanesNutraLive({ isOpen, onClose, onSubscriptionChanged }) {
@@ -7,6 +7,15 @@ export default function ModalPlanesNutraLive({ isOpen, onClose, onSubscriptionCh
   const [email, setEmail] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [activePlan, setActivePlan] = useState(getSubscriptionState());
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -38,20 +47,23 @@ export default function ModalPlanesNutraLive({ isOpen, onClose, onSubscriptionCh
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.85)',
-      backdropFilter: 'blur(8px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 9999,
-      padding: '16px'
-    }}>
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        padding: '16px'
+      }}
+    >
       <div style={{
         backgroundColor: '#0d1117',
         border: '1px solid #30363d',
